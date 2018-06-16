@@ -1,11 +1,11 @@
 # CSCS Extension for Visual Studio Code
 
-A [Visual Studio Code](https://code.visualstudio.com/) [extension](https://marketplace.visualstudio.com/VSCode) with rich support for the CSCS (Customized Scripting in C#). The CSCS language has been described in [CODE Magazine](http://www.codemag.com/Article/1607081), [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt632273.aspx), and in [this Syncfusion E-book](https://www.syncfusion.com/resources/techportal/details/ebooks/implementing-a-custom-language).
+A [Visual Studio Code](https://code.visualstudio.com/) [extension](https://marketplace.visualstudio.com/VSCode) with rich support for CSCS (Customized Scripting in C#). The CSCS scripting language has been described in [CODE Magazine](http://www.codemag.com/Article/1607081), [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt632273.aspx), and in [this Syncfusion E-book](https://www.syncfusion.com/resources/techportal/details/ebooks/implementing-a-custom-language).
 
 You can also use CSCS for cross-platform mobile develpment with Xamarin. See
-[CODE Magazine](http://www.codemag.com/article/1711081) and [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt829272). A Syncfusion E-book is coming up sometime in Sommer 2018.
+[CODE Magazine](http://www.codemag.com/article/1711081) and [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt829272). Stay tuned for a Syncfusion E-book "Native Mobile Apps in a Functional Scripting Language Succinctly" coming up in Summer 2018.
 
-This extention contains CSCS code syntax highlighting and supports debugging (including step-in, step-out, breakpoints, etc.)
+This extention contains the CSCS syntax highlighting and supports debugging (including step-in, step-out, breakpoints, call stack, exceptions, etc.)
 
 ## Quick start
 
@@ -35,12 +35,12 @@ This extention contains CSCS code syntax highlighting and supports debugging (in
 
 ## Debugging Features
 
-* Watch window
+* Watch Window
 * Local and Global Variables
-* Add/remove breakpoints
-* Step through code ("Step in", "Step out", "Continue")
-* Call stack
-* Possibility to step-in to "include" statements and any CSCS functions
+* Add/Remove Breakpoints
+* Step Through Code ("Step in", "Step out", "Continue")
+* Call Stack
+* Possibility to Step-in to the "include file" Statements and to Any CSCS Function
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/vscode_cscs.gif)
 
