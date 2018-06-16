@@ -13,7 +13,7 @@
 	],
 	"activationEvents": [
 		"onDebug",
-		"onCommand:extension.mock-debug.getProgramName"
+		"onCommand:extension.cscsdebug.getProgramName"
 	],
 	"icon": "images/cscs128.png",
 	"repository": {
@@ -50,8 +50,8 @@
 		],
 		"debuggers": [
 			{
-				"type": "mock",
-				"label": "Mock Debug",
+				"type": "cscs",
+				"label": "CSCS Debug",
 				"program": "./out/debugAdapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
@@ -70,6 +70,21 @@
 								"description": "Automatically stop after launch.",
 								"default": true
 							},
+							"connectType": {
+								"type": "string",
+								"description": "Type of connection to the Debugger",
+								"default": "sockets"
+							},
+							"serverPort": {
+								"type": "number",
+								"description": "Number of the server port to connect to.",
+								"default": 13337
+							},
+							"serverHost": {
+								"type": "string",
+								"description": "Name of the server host to connect to.",
+								"default": "127.0.0.1"
+							},
 							"trace": {
 								"type": "boolean",
 								"description": "Enable logging of the Debug Adapter Protocol.",
@@ -80,28 +95,34 @@
 				},
 				"initialConfigurations": [
 					{
-						"type": "mock",
+						"type": "cscs",
 						"request": "launch",
 						"name": "Ask for file name",
 						"program": "${workspaceFolder}/${command:AskForProgramName}",
-						"stopOnEntry": true
+						"stopOnEntry": true,
+						"connectType": "sockets",
+						"serverPort": 13337,
+						"serverHost": "127.0.0.1"
 					}
 				],
 				"configurationSnippets": [
 					{
-						"label": "Mock Debug: Launch",
+						"label": "CSCS Debug: Launch",
 						"description": "A new configuration for 'debugging' a user selected CSCS file.",
 						"body": {
-							"type": "mock",
+							"type": "cscs",
 							"request": "launch",
 							"name": "Ask for file name",
 							"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
-							"stopOnEntry": true
+							"stopOnEntry": true,
+							"connectType": "sockets",
+							"serverPort": 13337,
+							"serverHost": "127.0.0.1"
 						}
 					}
 				],
 				"variables": {
-					"AskForProgramName": "extension.mock-debug.getProgramName"
+					"AskForProgramName": "extension.cscs-debug.getProgramName"
 				}
 			}
 		]
@@ -109,9 +130,10 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"prepublish": "tsc -p ./src",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"test": "npm run compile && node ./node_modules/vscode/bin/test",
+		"compile": "tsc -p ./src",
+		"tslint": "tslint ./src/**/*.ts",
+		"watch": "tsc -w -p ./src",
+		"test": "mocha -u tdd ./out/tests/",
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"package": "vsce package",
 		"publish": "vsce publish"
