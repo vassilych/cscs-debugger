@@ -287,6 +287,10 @@
           </dict>
           <dict>
             <key>include</key>
+            <string>#elif-part</string>
+          </dict>
+          <dict>
+            <key>include</key>
             <string>#switch-statement</string>
           </dict>
           <dict>
@@ -2612,6 +2616,28 @@
           <dict>
             <key>name</key>
             <string>keyword.control.conditional.else.cscs</string>
+          </dict>
+        </dict>
+        <key>end</key>
+        <string>(?&lt;=\})|(?=;)</string>
+        <key>patterns</key>
+        <array>
+          <dict>
+            <key>include</key>
+            <string>#statement</string>
+          </dict>
+        </array>
+      </dict>
+      <key>elif-part</key>
+      <dict>
+        <key>begin</key>
+        <string>(?&lt;!\.)\b(elif)\b</string>
+        <key>beginCaptures</key>
+        <dict>
+          <key>1</key>
+          <dict>
+            <key>name</key>
+            <string>keyword.control.conditional.elif.cscs</string>
           </dict>
         </dict>
         <key>end</key>
