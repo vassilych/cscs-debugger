@@ -29,23 +29,20 @@ This extention contains CSCS code syntax highlighting and supports debugging (in
 
 * **Step 4.** Start debugging in Visual Studio Code (see the animated gif below).
 
-
 ## Questions, issues, feature requests, and contributions
 
 * If you have a question about how to accomplish something with the extension or come across a problem with the extension, please [ask me](http://www.ilanguage.ch/p/contact.html)
 
 ## Debugging Features
 
-* Debugging
-  + Watch window
-  + Local and Global Variables
-  + Add/remove breakpoints
-  + Step through code ("Step in", "Step out", "Continue")
-  + Possibility to step-in to "include" statements and any CSCS functions
-
+* Watch window
+* Local and Global Variables
+* Add/remove breakpoints
+* Step through code ("Step in", "Step out", "Continue")
+* Call stack
+* Possibility to step-in to "include" statements and any CSCS functions
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/vscode_cscs.gif)
-
 
 The corresponding `launch.json` configuration looks like this:
 
