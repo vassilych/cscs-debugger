@@ -1,0 +1,61 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "extensionHost",
+			"request": "launch",
+			"name": "Extension",
+			"preLaunchTask": "npm",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}"
+			],
+			"outFiles": [ "${workspaceFolder}/out/**/*.js" ]
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Server",
+			"cwd": "${workspaceFolder}",
+			"program": "${workspaceFolder}/src/debugAdapter.ts",
+			"args": [ "--server=4711" ],
+			"outFiles": [ "${workspaceFolder}/out/**/*.js" ]
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Tests",
+			"cwd": "${workspaceFolder}",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+			"args": [
+				"-u", "tdd",
+				"--timeout", "999999",
+				"--colors",
+				"./out/tests/"
+			],
+			"outFiles": [ "${workspaceFolder}/out/**/*.js" ],
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
+			"type": "cscs",
+			"request": "launch",
+			"name": "CSCS Debugger",
+			"program": "${workspaceFolder}/${command:AskForProgramName}",
+			"stopOnEntry": true
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "CSCS Debug",
+			"program": "${workspaceFolder}/../data/test.cscs",
+			"stopOnEntry": true,
+			"debugServer": 4711
+		}
+	],
+	"compounds": [
+		{
+			"name": "Extension + Server",
+			"configurations": [ "Extension", "Server" ]
+		}
+	]
+}
