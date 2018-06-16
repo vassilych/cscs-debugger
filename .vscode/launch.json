@@ -41,7 +41,10 @@
 			"request": "launch",
 			"name": "CSCS Debugger",
 			"program": "${workspaceFolder}/${command:AskForProgramName}",
-			"stopOnEntry": true
+			"stopOnEntry": true,
+			"connectType": "sockets",
+			"serverPort": 13337,
+			"serverHost": "127.0.0.1"
 		},
 		{
 			"type": "node",
@@ -49,6 +52,9 @@
 			"name": "CSCS Debug",
 			"program": "${workspaceFolder}/../data/test.cscs",
 			"stopOnEntry": true,
+			"connectType": "sockets",
+			"serverPort": 13337,
+			"serverHost": "127.0.0.1",
 			"debugServer": 4711
 		}
 	],
