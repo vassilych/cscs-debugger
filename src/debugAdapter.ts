@@ -2,6 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
- import { MockDebugSession } from './mockDebug';
+ import { CscsDebugSession } from './cscsDebug';
 
- MockDebugSession.run(MockDebugSession);
+ CscsDebugSession.run(CscsDebugSession);

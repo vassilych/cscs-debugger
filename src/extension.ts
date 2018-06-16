@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
-import { MockDebugSession } from './mockDebug';
+import { CscsDebugSession } from './cscsDebug';
 import * as Net from 'net';
 
 const Path = require('path');
@@ -20,25 +20,13 @@ const EMBED_DEBUG_ADAPTER = false;
 
 export function activate(context: vscode.ExtensionContext) {
 
-	context.subscriptions.push(vscode.commands.registerCommand('extension.mock-debug.getProgramName', config => {
-		return vscode.window.showInputBox({
-			placeHolder: "Please enter the name of a CSCS file in the workspace folder",
-			value: "test.cscs"
-		});
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand('extension.mock-debug2.getProgramName', config => {
-		let filename = '';
-		let filePromise = vscode.window.showInputBox({
-			placeHolder: "Please enter the name of a CSCS file in the workspace folder",
-			value: "test.cscs"
-		}).then(fileObj => {
-			filename = fileObj ? fileObj.toString() : '';
-			console.warn('Filename chosen: ' + filename );
-		});
-
-		return filePromise;
-	}));
 	context.subscriptions.push(vscode.commands.registerCommand('extension.cscs-debug.getProgramName', config => {
+		return vscode.window.showInputBox({
+			placeHolder: "Enter the name of a CSCS file in the workspace folder",
+			value: "test.cscs"
+		});
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand('extension.cscs-debug2.getProgramName', config => {
 		let filename = "";
 		let fileData =
 		vscode.window.showOpenDialog({
@@ -56,20 +44,17 @@ export function activate(context: vscode.ExtensionContext) {
 		return fileData;
 	}));
 
-	// register a configuration provider for 'mock' debug type
-	const provider = new MockConfigurationProvider()
-	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('mock', provider));
+	// register a configuration provider for 'cscs' debug type
+	const provider = new CscsConfigurationProvider()
+	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cscs', provider));
 	context.subscriptions.push(provider);
-
-	let _outputChannel = vscode.window.createOutputChannel("CSCS");
-	_outputChannel.appendLine('CSCS> ');
 }
 
 export function deactivate() {
 	// nothing to do
 }
 
-class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
+class CscsConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	private _server?: Net.Server;
 
@@ -83,7 +68,7 @@ class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
 		if (!config.type && !config.request && !config.name) {
 			const editor = vscode.window.activeTextEditor;
 			if (editor && editor.document.languageId === 'cscs' ) {
-				config.type = 'mock';
+				config.type = 'cscs';
 				config.name = 'Launch';
 				config.request = 'launch';
 				config.program = '${file}';
@@ -103,7 +88,7 @@ class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 				// start listening on a random port
 				this._server = Net.createServer(socket => {
-					const session = new MockDebugSession();
+					const session = new CscsDebugSession();
 					session.setRunAsServer(true);
 					session.start(<NodeJS.ReadableStream>socket, socket);
 				}).listen(0);
