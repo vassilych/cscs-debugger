@@ -13,9 +13,9 @@ This extention contains CSCS code syntax highlighting and supports debugging (in
 
 * **Step 1.** Download the CSCS parser [Windows/Mac Version](https://github.com/vassilych/cscs).
 
-* **Step 2.** Open the project downloaded in the first step Visual Studio and compile it.
+* **Step 2.** Open the project downloaded in the first step Visual Studio Code and compile it.
 
-* **Step 3.** Start the DebugServer either from Visual Studio or from the command-line. The default port is 13337.
+* **Step 3.** Start the DebugServer either from Visual Studio Code or from the command-line. The default port is 13337.
 
 * **Step 4.** Start debugging in Visual Studio Code (see the animated gif below).
 
@@ -25,7 +25,7 @@ This extention contains CSCS code syntax highlighting and supports debugging (in
 
 * **Step 2.** Open the project downloaded in the first step Visual Studio and compile it.
 
-* **Step 3.** Start the DebugServer either from Visual Studio Code or from the command-line. The default port is 13337.
+* **Step 3.** Start the DebugServer either from Visual Studio or from the command-line. The default port is 13337.
 
 * **Step 4.** Start debugging in Visual Studio Code (see the animated gif below).
 
