@@ -9,8 +9,6 @@ import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken 
 import { CscsDebugSession } from './cscsDebug';
 import * as Net from 'net';
 
-const Path = require('path');
-
 /*
  * Set the following compile time flag to true if the
  * debug adapter should run inside the extension host.
@@ -19,29 +17,13 @@ const Path = require('path');
 const EMBED_DEBUG_ADAPTER = false;
 
 export function activate(context: vscode.ExtensionContext) {
+	console.log('Extension "cscs-debug" is now active.');
 
 	context.subscriptions.push(vscode.commands.registerCommand('extension.cscs-debug.getProgramName', config => {
-		return vscode.window.showInputBox({
+			return vscode.window.showInputBox({
 			placeHolder: "Enter the name of a CSCS file in the workspace folder",
 			value: "test.cscs"
 		});
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand('extension.cscs-debug2.getProgramName', config => {
-		let filename = "";
-		let fileData =
-		vscode.window.showOpenDialog({
-			canSelectFiles: true,
-			canSelectFolders: false,
-			canSelectMany: false
-			//defaultUri: vscode.Uri.file("test.cscs")
-		}).then(fileObj => {
-			let pathname = fileObj ? fileObj[0].toString() : '';
-			let path = String(pathname);
-			filename = Path.basename(path);
-			console.warn('Filename chosen: ' + path + ' --> ' + filename);
-		});
-
-		return fileData;
 	}));
 
 	// register a configuration provider for 'cscs' debug type

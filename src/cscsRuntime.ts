@@ -121,7 +121,9 @@ export class CscsRuntime extends EventEmitter {
 
 			this._debugger.connect(this._port, this._host, () => {
 				this._connected = true;
-				console.log('Connected!');
+				console.log('Connected to the Debugger Server!');
+				this.printInfoMsg('Connected to the server at ' + this._host + ":" + this._port);
+				this.printInfoMsg('Check out the results in the Output CSCS Window');
 
 				this.sendToServer("file", this._sourceFile);
 				for (let i = 0; i < this._queuedCommands.length; i++) {
@@ -135,8 +137,12 @@ export class CscsRuntime extends EventEmitter {
 			});
 
 			this._debugger.on('close', () => {
+				if (!this._connected) { 
+					this.printErrorMsg("Couldn't connect to " + this._host + ":" + this._port);
+				} else {
+					this.printWarningMsg('Connection closed');
+				}
 				this._connected = false;
-				console.info('Connection closed');
 			});
 		}
 	}
@@ -163,6 +169,16 @@ export class CscsRuntime extends EventEmitter {
 		//this.printDebugMsg("PRINT " + msg + " " + file + " " + line);
 		this.sendEvent('output', msg, file, line, 0);
 	}
+	public printInfoMsg(msg : string) {
+		this.sendEvent('onInfoMessage', msg);
+	}
+	public printWarningMsg(msg : string) {
+		this.sendEvent('onWarningMessage', msg);
+	}
+	public printErrorMsg(msg : string) {
+		this.sendEvent('onErrorMessage', msg);
+	}
+
 	protected processFromDebugger(data : string) {
 		let lines = data.toString().split('\n');
 		let currLine = 0;
@@ -198,7 +214,7 @@ export class CscsRuntime extends EventEmitter {
 
 			for (let i = 0; i < this._stackTrace.length; i ++) {
 				let entry = this._stackTrace[i];
-				this.printCSCSOutput(entry.file + ', line ' + entry.line + ':\t' + entry.name);
+				this.printCSCSOutput(entry.file + ', line ' + (entry.line+1) + ':\t' + entry.name);
 			}
 			return;
 		}

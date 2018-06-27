@@ -9,7 +9,7 @@ import {
 	Thread, StackFrame, Scope, Source, Handles, Breakpoint
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-//import { OutputChannel, window } from 'vscode';
+//import * as vscode from 'vscode';
 import { basename } from 'path';
 import { CscsRuntime, CscsBreakpoint } from './cscsRuntime';
 const { Subject } = require('await-notify');
@@ -58,6 +58,15 @@ export class CscsDebugSession extends LoggingDebugSession {
 		this.setDebuggerLinesStartAt1(false);
 		this.setDebuggerColumnsStartAt1(false);
 
+		let stdin = process.openStdin();
+
+		stdin.addListener("data", function(d) {
+			// note:  d is an object, and when converted to a string it will
+			// end with a linefeed.  so we (rather crudely) account for that  
+			// with toString() and then substring() 
+			console.log("you entered: [" + d.toString().trim() + "]");
+		});
+
 		this._runtime = new CscsRuntime(this);
 
 		// setup event handlers
@@ -82,6 +91,18 @@ export class CscsDebugSession extends LoggingDebugSession {
 			e.body.line = this.convertDebuggerLineToClient(line);
 			e.body.column = this.convertDebuggerColumnToClient(column);
 			this.sendEvent(e);
+		});
+		this._runtime.on('onInfoMessage', (msg : string) => {
+			//vscode.window.showInformationMessage('CSCS: ' + msg);
+			console.info(msg);
+		});
+		this._runtime.on('onWarningMessage', (msg : string) => {
+			//vscode.window.showWarningMessage('CSCS: ' + msg);
+			console.warn(msg);
+		});
+		this._runtime.on('onErrorMessage', (msg : string) => {
+			//vscode.window.showErrorMessage('CSCS: ' + msg);
+			console.error(msg);
 		});
 		this._runtime.on('end', () => {
 			this.sendEvent(new TerminatedEvent());
