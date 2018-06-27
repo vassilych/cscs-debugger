@@ -2,7 +2,7 @@
 
 A [Visual Studio Code](https://code.visualstudio.com/) [extension](https://marketplace.visualstudio.com/VSCode) with rich support for CSCS (Customized Scripting in C#). The CSCS scripting language has been described in [CODE Magazine](http://www.codemag.com/Article/1607081), [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt632273.aspx), and in [this Syncfusion E-book](https://www.syncfusion.com/resources/techportal/details/ebooks/implementing-a-custom-language).
 
-There is also a [REPL CSCS Extension] (https://marketplace.visualstudio.com/items?itemName=vassilik.cscs-repl) which permits executing only selected parts of the code. See a section about it and an animated gif below.
+There is also a [REPL CSCS Extension](https://marketplace.visualstudio.com/items?itemName=vassilik.cscs-repl) which permits executing only selected parts of the code. See a section about it and an animated gif below.
 
 The cool thing about CSCS is that you can modify the mobile app Layout on the fly! And this is using the same code for iOS and for Android devices. Check out the first animated gif below.
 
@@ -13,7 +13,7 @@ You can also use CSCS for cross-platform mobile develpment with Xamarin. See
 
 This extention contains the CSCS syntax highlighting and supports debugging (including step-in, step-out, breakpoints, call stack, exceptions, etc.)
 
-## Quick start
+## Quick Start
 
 ### Windows/Mac/VS Extensions
 
@@ -21,9 +21,9 @@ This extention contains the CSCS syntax highlighting and supports debugging (inc
 
 * **Step 2.** Open the project downloaded in the first step Visual Studio Code and compile it.
 
-* **Step 3.** Start the DebugServer either from Visual Studio Code or from the command-line. The default port is 13337.
+* **Step 3.** Start the DebugServer either from Visual Studio Code or from the command-line. The default port is 13337. The host and port are configurable.
 
-* **Step 4.** Start debugging in Visual Studio Code (see the animated gif below).
+* **Step 4.** Open any CSCS file in Visual Studio Code and start selecting code fragments and pressing Cmd+9 (Ctrl+9) (see the animated gifs below).
 
 ### Mobile Development/Unity Extension
 
@@ -31,11 +31,11 @@ This extention contains the CSCS syntax highlighting and supports debugging (inc
 
 * **Step 2.** Open the project downloaded in the first step Visual Studio and compile it.
 
-* **Step 3.** Start the DebugServer either from Visual Studio or from the command-line. The default port is 13337.
+* **Step 3.** Start the DebugServer from Visual Studio with Xamarin. The default port is 13337.
 
-* **Step 4.** Start debugging in Visual Studio Code (see the animated gif below).
+* **Step 4.** Open any CSCS file in Visual Studio Code and start selecting code fragments and pressing Cmd+9 (Ctrl+9) (see the animated gifs below).
 
-## Questions, issues, feature requests, and contributions
+## Questions, Issues, Feature requests
 
 * If you have a question about how to accomplish something with the extension or come across a problem with the extension, please [ask me](http://www.ilanguage.ch/p/contact.html)
 
@@ -72,7 +72,7 @@ The corresponding `launch.json` configuration looks like this:
 
 ## The REPL Extension
 
-* Here is the REPL Extesion in action with an iOS device. You can see that you can add and remove widgets on the fly!
+* Here is the REPL Extesion in action with an iOS device. You can see that you can add and remove widgets on the fly! Download and install it [here](https://marketplace.visualstudio.com/items?itemName=vassilik.cscs-repl)
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-repl/master/images/repl_ios_cscs.gif)
 
