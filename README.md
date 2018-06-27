@@ -1,6 +1,12 @@
-# CSCS Extension for Visual Studio Code
+# CSCS Debugger Extension for Visual Studio Code
 
 A [Visual Studio Code](https://code.visualstudio.com/) [extension](https://marketplace.visualstudio.com/VSCode) with rich support for CSCS (Customized Scripting in C#). The CSCS scripting language has been described in [CODE Magazine](http://www.codemag.com/Article/1607081), [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt632273.aspx), and in [this Syncfusion E-book](https://www.syncfusion.com/resources/techportal/details/ebooks/implementing-a-custom-language).
+
+There is also a [REPL CSCS Extension] (https://marketplace.visualstudio.com/items?itemName=vassilik.cscs-repl) which permits executing only selected parts of the code. See a section about it and an animated gif below.
+
+The cool thing about CSCS is that you can modify the mobile app Layout on the fly! And this is using the same code for iOS and for Android devices. Check out the first animated gif below.
+
+The main advantage of the CSCS scripting language is the possibility to easily modify the language functionality or to add new functions. Everything is open sourced (see [Windows/Mac Version](https://github.com/vassilych/cscs) and [Mobile Development Version](https://github.com/vassilych/mobile)) and is absolutely free to use.
 
 You can also use CSCS for cross-platform mobile develpment with Xamarin. See
 [CODE Magazine](http://www.codemag.com/article/1711081) and [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt829272). Stay tuned for a Syncfusion E-book "Native Mobile Apps in a Functional Scripting Language Succinctly" coming up in Summer 2018.
@@ -40,10 +46,10 @@ This extention contains the CSCS syntax highlighting and supports debugging (inc
 * Add/Remove Breakpoints
 * Step Through Code ("Step in", "Step out", "Continue")
 * Call Stack
+* Hover over variables or functions to see their current values
 * Possibility to Step-in to the "include file" Statements and to Any CSCS Function
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/vscode_cscs.gif)
-
 The corresponding `launch.json` configuration looks like this:
 
 ```json
@@ -63,6 +69,12 @@ The corresponding `launch.json` configuration looks like this:
     ]
 }
 ```
+
+## The REPL Extension
+
+* Here is the REPL Extesion in action with an iOS device. You can see that you can add and remove widgets on the fly!
+
+![General Features](https://raw.githubusercontent.com/vassilych/cscs-repl/master/images/repl_ios_cscs.gif)
 
 ## Data and Privacy
 
