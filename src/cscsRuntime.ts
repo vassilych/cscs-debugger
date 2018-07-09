@@ -25,9 +25,6 @@ export interface StackEntry {
 	file: string;
 }
 
-/**
- * A CSCS runtime with minimal debugger functionality.
- */
 export class CscsRuntime extends EventEmitter {
 
 	private _debugger = new Net.Socket();
@@ -125,6 +122,7 @@ export class CscsRuntime extends EventEmitter {
 				this.printInfoMsg('Connected to the server at ' + this._host + ":" + this._port);
 				this.printInfoMsg('Check out the results in the Output CSCS Window');
 
+				this.sendAllBreakpontsToServer();
 				this.sendToServer("file", this._sourceFile);
 				for (let i = 0; i < this._queuedCommands.length; i++) {
 					this.sendToServer(this._queuedCommands[i]);
@@ -188,9 +186,7 @@ export class CscsRuntime extends EventEmitter {
 		this.printDebugMsg('got: ' + request + ' ' + fileStr + ' line=' + lineStr + ' len=' + lines.length);
 		let startVarsData  = 1;
 		let startStackData = 1;
-		//if (request === 'next' && !this._continue) {
-			//this.sendToServer('stack');
-		//}
+
 		if (request === 'end') {
 			this.disconnectFromDebugger();
 			return;
@@ -271,7 +267,7 @@ export class CscsRuntime extends EventEmitter {
 		if (request === 'stack' || request === 'next') {
 			this.fillStackTrace(lines, startStackData);
 		}
-		if (this._originalLine < 0) {
+		if (this._originalLine === -1) {
 			this.disconnectFromDebugger();
 			return;
 		}
@@ -335,9 +331,6 @@ export class CscsRuntime extends EventEmitter {
 		}
 	}
 
-	public variablesRequest(): void {
-		this.sendToServer("vars", "");
-	}
 	public getVariableValue(key : string) : string {
 		let val = this._variablesMap.get(key);
 		if (val) {
@@ -367,9 +360,6 @@ export class CscsRuntime extends EventEmitter {
 		this.sendToServer('continue');
 	}
 
-	/**
-	 * Step to the next/previous non empty line.
-	 */
 	public step(event = 'stopOnStep') {
 		if (!this.verifyDebug(this._sourceFile)) {
 			return;
@@ -433,9 +423,29 @@ export class CscsRuntime extends EventEmitter {
 		};
 	}
 
-	/*
-	 * Set breakpoint in file with given line.
-	 */
+	public sendBreakpontsToServer(path : string) {
+		if (!this._connected) {
+			return;
+		}
+		path = Path.normalize(path);
+		let data = path;
+		let bps = this._breakPoints.get(path) || [];
+
+		for (let i = 0; i < bps.length; i ++) {
+			let entry = bps[i].line;
+			data += "|" + entry;
+		}
+		this.sendToServer('setbp', data);
+	}
+
+	sendAllBreakpontsToServer() {
+		let keys = Array.from(this._breakPoints.keys() );
+		for (let i = 0; i < keys.length; i ++) {
+			let path = keys[i];
+			this.sendBreakpontsToServer(path);
+		}		
+	}
+
 	public setBreakPoint(path: string, line: number) : CscsBreakpoint {
 		path = Path.normalize(path);
 
@@ -468,9 +478,6 @@ export class CscsRuntime extends EventEmitter {
 		return bp;
 	}
 
-	/*
-	 * Clear breakpoint in file with given line.
-	 */
 	public clearBreakPoint(path: string, line: number) : CscsBreakpoint | undefined {
 		path = Path.normalize(path);
 		let bpMap = this._breakPointMap.get(path);
@@ -490,9 +497,6 @@ export class CscsRuntime extends EventEmitter {
 		return undefined;
 	}
 
-	/*
-	 * Clear all breakpoints for file.
-	 */
 	public clearBreakpoints(path: string): void {
 		path = Path.normalize(path);
 		this._breakPoints.delete(path);
@@ -540,10 +544,6 @@ export class CscsRuntime extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Fire events if line has a breakpoint or the word 'exception' is found.
-	 * Returns true is execution needs to stop.
-	 */
 	private fireEventsForLine(ln: number, stepEvent?: string): boolean {
 
 		if (ln >= this._sourceLines.length) {
@@ -583,6 +583,7 @@ export class CscsRuntime extends EventEmitter {
 		this._functionsMap.set("else", ifelse);
 		this._functionsMap.set("while", "while(condition) { ... }: While control flow. Curly braces {} are mandatory!");
 		this._functionsMap.set("for", "for(i : array) OR for(i=0; i<n; i++) { ... }: For control flow statements. Curly braces {} are mandatory!");
+
 		this._functionsMap.set("function", "function f(arg1, arg2, ...) { ... } : CSCS custom interpreted function (use cfunction for pre-compiled functions)");
 		this._functionsMap.set("cfunction", "cfunction <retType> f(<type1> arg1, <type2> arg2, ...) { ... } : CSCS function to be precompiled");
 		this._functionsMap.set("print", "print(arg1, arg2, ...): Prints passed arguments to console");
@@ -590,7 +591,9 @@ export class CscsRuntime extends EventEmitter {
 		this._functionsMap.set("test",  "test(arg1, arg2): Tests if arg1 is equal to arg2");
 		this._functionsMap.set("type",  "type(arg): Returns type of the passed arg");
 		this._functionsMap.set("isInteger", "isInteger(arg): Tests if arg is an integer");
+		this._functionsMap.set("include", "include(filename): includes CSCS code from the filename");
 		this._functionsMap.set("substr", "substr(arg, from, length): Returns a substring of arg");
+
 		this._functionsMap.set("pow", "pow(base, n): Returns base raised to the power of n");
 		this._functionsMap.set("exp", "exp(x): Returns e (2.718281828...) raised to the power of x");
 		this._functionsMap.set("pi", "pi: Pi constant (3.141592653589793...) ");

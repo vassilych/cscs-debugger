@@ -14,12 +14,6 @@ import { basename } from 'path';
 import { CscsRuntime, CscsBreakpoint } from './cscsRuntime';
 const { Subject } = require('await-notify');
 
-/**
- * This interface describes the cscs-debug specific launch attributes
- * (which are not part of the Debug Adapter Protocol).
- * The schema for these attributes lives in the package.json of the cscs-debug extension.
- * The interface should always match this schema.
- */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	/** An absolute path to the "program" to debug. */
 	program: string;
@@ -44,7 +38,6 @@ export class CscsDebugSession extends LoggingDebugSession {
 
 	private _configurationDone = new Subject();
 
-	//private _globalScope : number;
 	private _localScope  : number;
 
 	/**
@@ -189,11 +182,12 @@ export class CscsDebugSession extends LoggingDebugSession {
 			breakpoints: actualBreakpoints
 		};
 		this.sendResponse(response);
+
+		this._runtime.sendBreakpontsToServer(path);
 	}
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
 
-		// runtime supports now threads so just return a default thread.
 		response.body = {
 			threads: [
 				new Thread(CscsDebugSession.THREAD_ID, "thread 1")
