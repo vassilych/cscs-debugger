@@ -108,7 +108,6 @@ export class CscsRuntime extends EventEmitter {
 			// we just start to run until we hit a breakpoint or an exception
 			this.continue();
 		}
-		this._init = false;
 	}
 	public connectToDebugger() : void {
 		this._connected = false;
@@ -118,6 +117,7 @@ export class CscsRuntime extends EventEmitter {
 
 			this._debugger.connect(this._port, this._host, () => {
 				this._connected = true;
+				this._init = false;
 				console.log('Connected to the Debugger Server!');
 				this.printInfoMsg('Connected to the server at ' + this._host + ":" + this._port);
 				this.printInfoMsg('Check out the results in the Output CSCS Window');
@@ -135,16 +135,16 @@ export class CscsRuntime extends EventEmitter {
 			});
 
 			this._debugger.on('close', () => {
-				if (!this._connected) { 
+				if (this._init) { 
 					this.printErrorMsg("Couldn't connect to " + this._host + ":" + this._port);
-				} else {
+				} /*else {
 					this.printWarningMsg('Connection closed');
-				}
+				}*/
 				this._connected = false;
 			});
 		}
 	}
-	protected sendToServer(cmd : string, data = "") {
+	public sendToServer(cmd : string, data = "") {
 		if (this._finished) {
 			return;
 		}
@@ -306,6 +306,7 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	protected disconnectFromDebugger() {
+		this.sendToServer('bye');
 		console.error('Finished debugging');
 		this._connected = false;
 		this._finished = true;
@@ -394,7 +395,9 @@ export class CscsRuntime extends EventEmitter {
 		return true;
 	}
 	private verifyDebug(file: string) : boolean {
-		return this.verifyException() || file.endsWith('cs');
+		return this.verifyException() &&
+		 (file.endsWith('cs') ||
+		  file.endsWith('mqs'));
 	}
 
 	public stack(startFrame: number, endFrame: number): any {
