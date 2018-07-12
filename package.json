@@ -2,7 +2,7 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger",
 	"description": "CSCS (Customized Scripting in C#) Debugger",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
@@ -31,19 +31,15 @@
 	"main": "./out/extension",
 	"contributes": {
 		"languages": [{
-			"id": "cscs",
-			"aliases": [
-				"CSCS", "cscs"
-			],
-			"extensions": [
-				".cscs", ".mqs"
-			],
+			"id":            "cscs",
+			"aliases":      ["CSCS", "cscs"],
+			"extensions":   [".cscs", ".mqs"],
 			"configuration": "./language-configuration.json"
 		}],
 		"grammars": [{
 			"language": "cscs",
 			"scopeName": "source.cscs",
-			"path": "./syntaxes/cs.tmLanguage"
+			"path": "./syntaxes/cscs.tmLanguage"
 		}],
 		"breakpoints": [{
 			"language": "cscs"
