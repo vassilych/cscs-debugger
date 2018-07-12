@@ -50,6 +50,12 @@ This extention contains the CSCS syntax highlighting and supports debugging (inc
 * Possibility to Step-in to the "include file" Statements and to Any CSCS Function
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/vscode_cscs.gif)
+
+Setting breakpoints in custom functions:
+
+![General Features]
+(https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/breakpoints_repl.gif)
+
 The corresponding `launch.json` configuration looks like this:
 
 ```json
