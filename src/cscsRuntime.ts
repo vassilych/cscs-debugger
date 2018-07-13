@@ -267,7 +267,7 @@ export class CscsRuntime extends EventEmitter {
 		if (request === 'stack' || request === 'next') {
 			this.fillStackTrace(lines, startStackData);
 		}
-		if (this._originalLine === -1) {
+		if (this._originalLine === -3) {
 			this.disconnectFromDebugger();
 			return;
 		}
@@ -305,12 +305,12 @@ export class CscsRuntime extends EventEmitter {
 		}
 	}
 
-	protected disconnectFromDebugger() {
+	public disconnectFromDebugger() {
 		this.sendToServer('bye');
 		console.error('Finished debugging');
 		this._connected = false;
 		this._finished = true;
-		this._debugger.destroy();
+		this._debugger.end();
 		this.sendEvent('end');
 	}
 

@@ -263,6 +263,11 @@ export class CscsDebugSession extends LoggingDebugSession {
 		this._runtime.stepOut();
 		this.sendResponse(response);
 	}
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+
+		this._runtime.disconnectFromDebugger();
+		this.sendResponse(response);
+	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
 
