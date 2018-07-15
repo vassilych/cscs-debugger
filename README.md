@@ -53,8 +53,11 @@ This extention contains the CSCS syntax highlighting and supports debugging (inc
 
 Setting breakpoints in custom functions:
 
-![General Features]
-(https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/breakpoints_repl.gif)
+![Setting breakpoints](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/vscode_cscs2.gif)
+
+You can also execute REPL from the command-line while debugging, changing the variable values:
+
+![Executing REPL](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/vscode_repl.gif)
 
 The corresponding `launch.json` configuration looks like this:
 
