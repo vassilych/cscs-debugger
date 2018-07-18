@@ -32,6 +32,8 @@ export class CscsRuntime extends EventEmitter {
 	private _host : string;
 	private _port : number;
 
+	private static _instance: CscsRuntime;
+
 	private _localVariables = new Array<DebugProtocol.Variable>();
 	public get localVariables() {
 		return this._localVariables;
@@ -108,7 +110,15 @@ export class CscsRuntime extends EventEmitter {
 			// we just start to run until we hit a breakpoint or an exception
 			this.continue();
 		}
+
+		CscsRuntime._instance = this;
 	}
+
+	public static sendRepl(repl : string)
+	{
+		CscsRuntime._instance.sendToServer('_repl', repl);
+	}
+
 	public connectToDebugger() : void {
 		this._connected = false;
 
@@ -116,11 +126,13 @@ export class CscsRuntime extends EventEmitter {
 			console.log('Connecting to ' + this._port + " on  " + this._host + "...");
 
 			this._debugger.connect(this._port, this._host, () => {
-				this._connected = true;
-				this._init = false;
 				console.log('Connected to the Debugger Server!');
 				this.printInfoMsg('Connected to the server at ' + this._host + ":" + this._port);
-				this.printInfoMsg('Check out the results in the Output CSCS Window');
+				if (this._init) {
+				  this.printInfoMsg('Check out the results in the Debug Console Window');
+				}
+				this._connected = true;
+				this._init = false;
 
 				this.sendAllBreakpontsToServer();
 				this.sendToServer("file", this._sourceFile);
@@ -394,8 +406,8 @@ export class CscsRuntime extends EventEmitter {
 		}
 		return true;
 	}
-	private verifyDebug(file: string) : boolean {
-		return this.verifyException() &&
+	public verifyDebug(file: string) : boolean {
+		return this.verifyException() && file !== null &&
 		 (file.endsWith('cs') ||
 		  file.endsWith('mqs'));
 	}
@@ -545,7 +557,7 @@ export class CscsRuntime extends EventEmitter {
 					const srcLine = sourceLines[bp.line].trim();
 
 					// if a line is empty or starts with '//' we don't allow to set a breakpoint but move the breakpoint down
-					if (srcLine.length === 0 || srcLine.indexOf('//') === 0) {
+					if (srcLine.length === 0 || srcLine.startsWith('//')) {
 						bp.line++;
 					}
 					bp.verified = true;
@@ -562,6 +574,10 @@ export class CscsRuntime extends EventEmitter {
 			return false;
 		}
 		const line = this._sourceLines[ln].trim();
+		if (line.startsWith('//')) {
+			this._originalLine++;
+			return this.fireEventsForLine(this._originalLine, stepEvent);
+		}
 
 		// is there a breakpoint?
 		let bp = this.getBreakPoint(ln);

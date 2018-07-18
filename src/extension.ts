@@ -5,6 +5,7 @@
 'use strict';
 
 import * as vscode from 'vscode';
+//import { CscsRuntime } from './cscsRuntime';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { CscsDebugSession } from './cscsDebug';
 import * as Net from 'net';
@@ -30,6 +31,30 @@ export function activate(context: vscode.ExtensionContext) {
 	const provider = new CscsConfigurationProvider()
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cscs', provider));
 	context.subscriptions.push(provider);
+
+	//let outputChannel = vscode.window.createOutputChannel('CSCS');
+    /*const getCode = () => {
+        let textEditor = vscode.window.activeTextEditor;
+        if (!textEditor) {
+            return "";
+        }
+        let selection = textEditor.selection;
+        let text = textEditor.document.getText(selection);
+        if (textEditor.selection.start.line === textEditor.selection.end.line &&
+            textEditor.selection.start.character === textEditor.selection.end.character) {
+            text = textEditor.document.lineAt(textEditor.selection.start.line).text;
+        }
+        return text;
+    };
+
+    let disposable = vscode.commands.registerCommand('debugger.cscs.repl', () => {
+        let code = getCode();
+        if (code === '') {
+            return;
+        }
+        CscsRuntime.sendRepl(code);
+    });
+    context.subscriptions.push(disposable);*/
 }
 
 export function deactivate() {

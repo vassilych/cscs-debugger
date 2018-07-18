@@ -116,14 +116,14 @@ export class CscsDebugSession extends LoggingDebugSession {
 
 		// make VS Code to use 'evaluate' when hovering over source
 		response.body.supportsEvaluateForHovers = true;
+		response.body.supportsRestartRequest = true;
+		//response.body.supportsModulesRequest = true;
 
 		// make VS Code NOT to show a 'step back' button
 		response.body.supportsStepBack = false;
 
 		response.body.supportsSetVariable = false;
-		response.body.supportsRestartRequest = false;
 		response.body.supportsRestartFrame = false;
-		response.body.supportsModulesRequest = false;
 
 		this.sendResponse(response);
 
@@ -164,6 +164,10 @@ export class CscsDebugSession extends LoggingDebugSession {
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
 		const path = <string>args.source.path;
+		if (!this._runtime.verifyDebug(path)) {
+			this.sendResponse(response);
+			return;
+		}
 		const clientLines = args.lines || [];
 
 		// clear all breakpoints for this file
@@ -181,9 +185,9 @@ export class CscsDebugSession extends LoggingDebugSession {
 		response.body = {
 			breakpoints: actualBreakpoints
 		};
-		this.sendResponse(response);
 
 		this._runtime.sendBreakpontsToServer(path);
+		this.sendResponse(response);
 	}
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
@@ -254,23 +258,25 @@ export class CscsDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
-
 		this._runtime.stepIn();
 		this.sendResponse(response);
 	}
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
-
 		this._runtime.stepOut();
 		this.sendResponse(response);
 	}
+	protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
+		this.sendResponse(response);
+	}
+	protected reverseRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
+		this.sendResponse(response);
+	}
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-
 		this._runtime.disconnectFromDebugger();
 		this.sendResponse(response);
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
-
 		let reply: string | undefined = undefined;
 
 		if (args.context === 'repl') {
