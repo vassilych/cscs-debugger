@@ -464,22 +464,25 @@ export class CscsRuntime extends EventEmitter {
 
 	public setBreakPoint(path: string, line: number) : CscsBreakpoint {
 		//path = Path.normalize(path);
-		path = Path.basename(path);
+		let filename = Path.basename(path);
 
 		const bp = <CscsBreakpoint> { verified: false, line, id: this._breakpointId++ };
-		let bps = this._breakPoints.get(path);
+		let bps = this._breakPoints.get(filename);
 		if (!bps) {
 			bps = new Array<CscsBreakpoint>();
-			this._breakPoints.set(path, bps);
+			this._breakPoints.set(filename, bps);
 		}
 		bps.push(bp);
 
-		let bpMap = this._breakPointMap.get(path);
+		let bpMap = this._breakPointMap.get(filename);
 		if (!bpMap) {
 			bpMap = new Map<number, CscsBreakpoint>();
 		}
 		bpMap.set(line, bp);
-		this._breakPointMap.set(path, bpMap);
+		this._breakPointMap.set(filename, bpMap);
+		if (filename.includes('functions.cscs')) {
+			this.printDebugMsg("Verifying " + path);
+		}
 
 		this.verifyBreakpoints(path);
 
