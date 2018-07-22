@@ -134,8 +134,8 @@ export class CscsRuntime extends EventEmitter {
 				this._connected = true;
 				this._init = false;
 
-				this.sendAllBreakpontsToServer();
 				this.sendToServer("file", this._sourceFile);
+				this.sendAllBreakpontsToServer();
 				for (let i = 0; i < this._queuedCommands.length; i++) {
 					this.sendToServer(this._queuedCommands[i]);
 				}
@@ -192,22 +192,28 @@ export class CscsRuntime extends EventEmitter {
 	protected processFromDebugger(data : string) {
 		let lines = data.toString().split('\n');
 		let currLine = 0;
-		let request = lines[currLine++];
+		let response = lines[currLine++];
 		let fileStr = lines.length < 2 ? 'X' : lines[1];
 		let lineStr = lines.length < 3 ? 'X' : lines[2];
-		this.printDebugMsg('got: ' + request + ' ' + fileStr + ' line=' + lineStr + ' len=' + lines.length);
+		this.printDebugMsg('got: ' + response + ' ' + fileStr + ' line=' + lineStr + ' len=' + lines.length);
 		let startVarsData  = 1;
 		let startStackData = 1;
 
-		if (request === 'end') {
+		if (response === 'end') {
 			this.disconnectFromDebugger();
 			return;
 		}
-		if (request === 'vars' || request === 'next' || request === 'exc') {
+		if (response === 'repl') {
+			for (let i = 1; i < lines.length - 1; i++) {
+				this.printCSCSOutput(lines[i]);
+			}
+			return;
+		}
+		if (response === 'vars' || response === 'next' || response === 'exc') {
 			this._localVariables.length = 0;
 			this._globalVariables.length = 0;
 		}
-		if (request === 'exc') {
+		if (response === 'exc') {
 			this.sendEvent('stopOnException');
 			this._isException = true;
 			let msg  = lines.length < 2 ? '' : lines[1];
@@ -226,7 +232,7 @@ export class CscsRuntime extends EventEmitter {
 			}
 			return;
 		}
-		if (request === 'next' && lines.length > 3) {
+		if (response === 'next' && lines.length > 3) {
 			let filename       = lines[currLine++];
 			if (filename !== this._sourceFile) {
 				this.loadSource(filename);
@@ -271,12 +277,12 @@ export class CscsRuntime extends EventEmitter {
 				}
 			}
 		}
-		if (request === 'vars' || request === 'next') {
+		if (response === 'vars' || response === 'next') {
 			let nbVarsLines  = Number(lines[startVarsData]);
 			this.fillVars(lines, startVarsData, nbVarsLines);
 			startStackData = startVarsData + nbVarsLines + 1;
 		}
-		if (request === 'stack' || request === 'next') {
+		if (response === 'stack' || response === 'next') {
 			this.fillStackTrace(lines, startStackData);
 		}
 		if (this._originalLine === -3) {
@@ -408,6 +414,7 @@ export class CscsRuntime extends EventEmitter {
 	}
 	public verifyDebug(file: string) : boolean {
 		return this.verifyException() && file !== null &&
+		  typeof file !== 'undefined' &&
 		 (file.endsWith('cs') ||
 		  file.endsWith('mqs'));
 	}
