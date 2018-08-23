@@ -20,15 +20,11 @@ const EMBED_DEBUG_ADAPTER = false;
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Extension "cscs-debug" is now active.');
 
-	let filename = "";
-	let textEditor = vscode.window.activeTextEditor;
-	if (textEditor && textEditor.document) {
-		filename  = Path.parse(textEditor.document.fileName).base;
-	}
-
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.cscs-debug.getProgramName', config => {
-			if (filename) {
+			let textEditor = vscode.window.activeTextEditor;
+			if (textEditor && textEditor.document && textEditor.document.fileName) {
+				let filename  = Path.parse(textEditor.document.fileName).base;
 				return filename;
 			}
 			return vscode.window.showInputBox({
