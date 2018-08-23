@@ -432,9 +432,14 @@ export class CscsRuntime extends EventEmitter {
 			});
 		}
 		if (frames.length === 0) {
+			let name = "";
+			if (this._sourceLines.length > this._originalLine &&
+				this._sourceLines[this._originalLine]) {
+					name = this._sourceLines[this._originalLine].trim()
+				}
 			frames.push({
 				index: 1,
-				name:  this._sourceLines[this._originalLine].trim(),
+				name:  name,
 				file:  this._sourceFile,
 				line:  this._originalLine
 			});	

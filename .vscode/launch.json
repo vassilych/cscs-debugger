@@ -50,7 +50,7 @@
 			"type": "node",
 			"request": "launch",
 			"name": "CSCS Debug",
-			"program": "${workspaceFolder}/../data/test.cscs",
+			"program": "${workspaceFolder}/../../data/test.cscs",
 			"stopOnEntry": true,
 			"connectType": "sockets",
 			"serverPort": 13337,

@@ -8,8 +8,8 @@ The cool thing about CSCS is that you can modify the mobile app Layout on the fl
 
 The main advantage of the CSCS scripting language is the possibility to easily modify the language functionality or to add new functions. Everything is open sourced (see [Windows/Mac Version](https://github.com/vassilych/cscs) and [Mobile Development Version](https://github.com/vassilych/mobile)) and is absolutely free to use.
 
-You can also use CSCS for cross-platform mobile develpment with Xamarin. See
-[CODE Magazine](http://www.codemag.com/article/1711081) and [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt829272). Stay tuned for a Syncfusion E-book "Native Mobile Apps in a Functional Scripting Language Succinctly" coming up in Summer 2018.
+You can also use CSCS for cross-platform mobile development (iOS and Android) with Xamarin. See
+[CODE Magazine](http://www.codemag.com/article/1711081), [MSDN Magazine](https://msdn.microsoft.com/en-us/magazine/mt829272) and [this Syncfusion E-book](https://www.syncfusion.com/ebooks/writing_native_mobile_apps_in_a_functional_language_succinctly).
 
 This extention contains the CSCS syntax highlighting and supports debugging (including step-in, step-out, breakpoints, call stack, exceptions, etc.)
 

@@ -2,7 +2,7 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger",
 	"description": "CSCS (Customized Scripting in C#) Debugger",
-	"version": "0.1.6",
+	"version": "0.2.4",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
@@ -13,11 +13,16 @@
 		"node": "^7.9.0"
 	},
 	"categories": [
-		"Debuggers", "Programming Languages"
+		"Debuggers",
+		"Programming Languages"
 	],
-    "keywords": [
-        "CSCS", "debugger", "scripting", "C#", "interpreter"
-    ],
+	"keywords": [
+		"CSCS",
+		"debugger",
+		"scripting",
+		"C#",
+		"interpreter"
+	],
 	"activationEvents": [
 		"onDebug",
 		"onCommand:extension.cscs-debug.getProgramName"
@@ -30,92 +35,110 @@
 	"license": "MIT",
 	"main": "./out/extension",
 	"contributes": {
-		"languages": [{
-			"id":            "cscs",
-			"aliases":      ["CSCS", "cscs"],
-			"extensions":   [".cscs", ".mqs"],
-			"configuration": "./language-configuration.json"
-		}],
-		"grammars": [{
-			"language": "cscs",
-			"scopeName": "source.cscs",
-			"path": "./syntaxes/cscs.tmLanguage"
-		}],
-		"breakpoints": [{
-			"language": "cscs"
-		}],
-		"debuggers": [{
-			"type": "cscs",
-			"label": "CSCS Debug",
-			"program": "./out/debugAdapter.js",
-			"runtime": "node",
-			"configurationAttributes": {
-				"launch": {
-					"required": [
-						"program"
-					],
-					"properties": {
-						"program": {
-							"type": "string",
-							"description": "Absolute path to a text file.",
-							"default": "${workspaceFolder}/${command:AskForProgramName}"
-						},
-						"stopOnEntry": {
-							"type": "boolean",
-							"description": "Automatically stop after launch.",
-							"default": true
-						},
-						"connectType": {
-							"type": "string",
-							"description": "Type of connection to the Debugger",
-							"default": "sockets"
-						},
-						"serverPort": {
-							"type": "number",
-							"description": "Number of the server port to connect to.",
-							"default": 13337
-						},
-						"serverHost": {
-							"type": "string",
-							"description": "Name of the server host to connect to.",
-							"default": "127.0.0.1"
-						},
-						"trace": {
-							"type": "boolean",
-							"description": "Enable logging of the Debug Adapter Protocol.",
-							"default": true
+		"languages": [
+			{
+				"id": "cscs",
+				"aliases": [
+					"CSCS",
+					"cscs"
+				],
+				"extensions": [
+					".cscs",
+					".mqs"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "cscs",
+				"scopeName": "source.cscs",
+				"path": "./syntaxes/cscs.tmLanguage"
+			}
+		],
+		"breakpoints": [
+			{
+				"language": "cscs"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "cscs",
+				"label": "CSCS Debug",
+				"program": "./out/debugAdapter.js",
+				"runtime": "node",
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"program"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Absolute path to a text file.",
+								"default": "${workspaceFolder}/${command:AskForProgramName}"
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Automatically stop after launch.",
+								"default": true
+							},
+							"connectType": {
+								"type": "string",
+								"description": "Type of connection to the Debugger",
+								"default": "sockets"
+							},
+							"serverPort": {
+								"type": "number",
+								"description": "Number of the server port to connect to.",
+								"default": 13337
+							},
+							"serverHost": {
+								"type": "string",
+								"description": "Name of the server host to connect to.",
+								"default": "127.0.0.1"
+							},
+							"trace": {
+								"type": "boolean",
+								"description": "Enable logging of the Debug Adapter Protocol.",
+								"default": true
+							}
 						}
 					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "cscs",
+						"request": "launch",
+						"name": "Ask for file name",
+						"program": "${workspaceFolder}/${command:AskForProgramName}",
+						"stopOnEntry": true,
+						"connectType": "sockets",
+						"serverPort": 13337,
+						"serverHost": "127.0.0.1"
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "CSCS Debug: Launch",
+						"description": "A new configuration for 'debugging' a user selected CSCS file.",
+						"body": {
+							"type": "cscs",
+							"request": "launch",
+							"name": "Ask for file name",
+							"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
+							"stopOnEntry": true,
+							"connectType": "sockets",
+							"serverPort": 13337,
+							"serverHost": "127.0.0.1"
+						}
+					}
+				],
+				"variables": {
+					"AskForProgramName": "extension.cscs-debug.getProgramName"
 				}
-			},
-			"initialConfigurations": [{
-				"type": "cscs",
-				"request": "launch",
-				"name": "Ask for file name",
-				"program": "${workspaceFolder}/${command:AskForProgramName}",
-				"stopOnEntry": true,
-				"connectType": "sockets",
-				"serverPort": 13337,
-				"serverHost": "127.0.0.1"
-			}],
-			"configurationSnippets": [{
-				"label": "CSCS Debug: Launch",
-				"description": "A new configuration for 'debugging' a user selected CSCS file.",
-				"body": {
-					"type": "cscs",
-					"request": "launch",
-					"name": "Ask for file name",
-					"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
-					"stopOnEntry": true,
-					"connectType": "sockets",
-					"serverPort": 13337,
-					"serverHost": "127.0.0.1"
-				}
-			}],
-			"variables": {
-				"AskForProgramName": "extension.cscs-debug.getProgramName"
 			}
-		}]
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
@@ -130,6 +153,7 @@
 	},
 	"dependencies": {
 		"await-notify": "1.0.1",
+		"npm": "^6.4.0",
 		"vscode": "1.1.17",
 		"vscode-debugadapter": "1.27.0",
 		"vscode-debugprotocol": "1.27.0"
