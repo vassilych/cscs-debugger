@@ -2,7 +2,7 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger",
 	"description": "CSCS (Customized Scripting in C#) Debugger",
-	"version": "0.2.4",
+	"version": "0.2.5",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
