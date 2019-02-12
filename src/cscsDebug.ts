@@ -22,6 +22,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	connectType?: string;
 	serverPort?: number;
 	serverHost?: string;
+	serverBase?: string;
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
 }
@@ -38,7 +39,7 @@ export class CscsDebugSession extends LoggingDebugSession {
 
 	private _configurationDone = new Subject();
 
-	private _localScope  : number;
+	private _localScope  = 0;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -53,10 +54,10 @@ export class CscsDebugSession extends LoggingDebugSession {
 
 		let stdin = process.openStdin();
 
-		stdin.addListener("data", function(d) {
+		stdin.addListener("data", function(d: any) {
 			// note:  d is an object, and when converted to a string it will
-			// end with a linefeed.  so we (rather crudely) account for that  
-			// with toString() and then substring() 
+			// end with a linefeed.  so we (rather crudely) account for that
+			// with toString() and then substring()
 			console.log("you entered: [" + d.toString().trim() + "]");
 		});
 
@@ -78,7 +79,7 @@ export class CscsDebugSession extends LoggingDebugSession {
 		this._runtime.on('breakpointValidated', (bp: CscsBreakpoint) => {
 			this.sendEvent(new BreakpointEvent('changed', <DebugProtocol.Breakpoint>{ verified: bp.verified, id: bp.id }));
 		});
-		this._runtime.on('output', (text, filePath, line, column) => {
+		this._runtime.on('output', (text: string, filePath: string, line: number, column: number) => {
 			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
 			e.body.source = this.createSource(filePath);
 			e.body.line = this.convertDebuggerLineToClient(line);
@@ -155,8 +156,13 @@ export class CscsDebugSession extends LoggingDebugSession {
 		let connectType = args.connectType ? args.connectType : "sockets";
 		let host = args.serverHost ? args.serverHost : "127.0.0.1";
 		let port = args.serverPort ? args.serverPort : 13337;
+		let base = args.serverBase ? args.serverBase : "";
 		// start the program in the runtime
-		this._runtime.start(args.program, !!args.stopOnEntry, connectType, host, port);
+
+		//let config = vscode.workspace.getConfiguration('mock-debug');
+		//let hostConfig = config.get("serverHost");
+		//host =  hostConfig ? hostConfig : "127.0.0.1";
+		this._runtime.start(args.program, !!args.stopOnEntry, connectType, host, port, base);
 
 		this.sendResponse(response);
 	}

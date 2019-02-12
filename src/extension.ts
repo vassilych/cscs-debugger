@@ -5,20 +5,11 @@
 'use strict';
 
 import * as vscode from 'vscode';
-//import { CscsRuntime } from './cscsRuntime';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
-import { CscsDebugSession } from './cscsDebug';
 import * as Net from 'net';
 import * as Path from 'path';
-/*
- * Set the following compile time flag to true if the
- * debug adapter should run inside the extension host.
- * Please note: the test suite does no longer work in this mode.
- */
-const EMBED_DEBUG_ADAPTER = false;
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Extension "cscs-debug" is now active.');
 
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.cscs-debug.getProgramName', config => {
@@ -32,35 +23,35 @@ export function activate(context: vscode.ExtensionContext) {
 				value: "test.cscs"
 		});
 	}));
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.cscs-debug.runLocal', config => {
+			let textEditor = vscode.window.activeTextEditor;
+			if (textEditor && textEditor.document && textEditor.document.fileName) {
+				let filename  = Path.parse(textEditor.document.fileName).base;
+				return filename;
+			}
+			return vscode.window.showInputBox({
+				placeHolder: "Enter the name of a CSCS file in the workspace folder",
+				value: "test.cscs"
+			});
+		}));
+	context.subscriptions.push(vscode.commands.registerCommand(
+		'extension.cscs-debug.runRemote', config => {
+			let textEditor = vscode.window.activeTextEditor;
+			if (textEditor && textEditor.document && textEditor.document.fileName) {
+				let filename  = Path.parse(textEditor.document.fileName).base;
+				return filename;
+			}
+			return vscode.window.showInputBox({
+				placeHolder: "Enter the name of a CSCS file in the workspace folder",
+				value: "test.cscs"
+			});
+		}));
 
-	// register a configuration provider for 'cscs' debug type
-	const provider = new CscsConfigurationProvider()
-	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cscs', provider));
-	context.subscriptions.push(provider);
 
-	//let outputChannel = vscode.window.createOutputChannel('CSCS');
-    /*const getCode = () => {
-        let textEditor = vscode.window.activeTextEditor;
-        if (!textEditor) {
-            return "";
-        }
-        let selection = textEditor.selection;
-        let text = textEditor.document.getText(selection);
-        if (textEditor.selection.start.line === textEditor.selection.end.line &&
-            textEditor.selection.start.character === textEditor.selection.end.character) {
-            text = textEditor.document.lineAt(textEditor.selection.start.line).text;
-        }
-        return text;
-    };
-
-    let disposable = vscode.commands.registerCommand('debugger.cscs.repl', () => {
-        let code = getCode();
-        if (code === '') {
-            return;
-        }
-        CscsRuntime.sendRepl(code);
-    });
-    context.subscriptions.push(disposable);*/
+	const providerCscs = new CscsConfigurationProvider()
+	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cscs', providerCscs));
+	context.subscriptions.push(providerCscs);
 }
 
 export function deactivate() {
@@ -95,20 +86,19 @@ class CscsConfigurationProvider implements vscode.DebugConfigurationProvider {
 			});
 		}
 
-		if (EMBED_DEBUG_ADAPTER) {
-			// start port listener on launch of first debug session
-			if (!this._server) {
+		let textEditor = vscode.window.activeTextEditor;
+		if (textEditor && textEditor.document && textEditor.document.fileName) {
+            config.program = textEditor.document.fileName;
+		}
 
-				// start listening on a random port
-				this._server = Net.createServer(socket => {
-					const session = new CscsDebugSession();
-					session.setRunAsServer(true);
-					session.start(<NodeJS.ReadableStream>socket, socket);
-				}).listen(0);
-			}
-
-			// make VS Code connect to debug server instead of launching debug adapter
-			config.debugServer = this._server.address().port;
+		const extConfig       = vscode.workspace.getConfiguration('cscs');
+		config['connectType'] = extConfig.get('connectType', 'sockets');
+		config['serverPort']  = extConfig.get('serverPort', config['serverPort']);
+		config['serverHost']  = '127.0.0.1';
+		if (config.name.toLowerCase().indexOf("remote") >= 0)
+		{
+			config['serverHost']  = extConfig.get('serverHost', config['serverHost']);
+			config['serverBase']  = extConfig.get('serverBase');
 		}
 
 		return config;
