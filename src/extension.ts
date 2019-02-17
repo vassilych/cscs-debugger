@@ -67,6 +67,9 @@ export function activate(context: vscode.ExtensionContext) {
 		let counter = 0;
 		for (let i = 0; i < lines.length; i++) {
 			let line = lines[i].trim();
+			if (i == 0 && line.startsWith("repl")) {
+				continue;
+			}
 			if (line === "" && i == lines.length - 1) {
 				break;
 			}

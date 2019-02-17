@@ -1,7 +1,7 @@
 {
 	"name": "cscs-debugger",
-	"displayName": "CSCS Debugger",
-	"description": "CSCS (Customized Scripting in C#) Debugger",
+	"displayName": "CSCS Debugger & REPL",
+	"description": "CSCS (Customized Scripting in C#) Debugger and REPL Extension",
 	"version": "0.3.3",
 	"publisher": "vassilik",
 	"author": {
@@ -21,6 +21,7 @@
 		"debugger",
 		"scripting",
 		"C#",
+		"REPL",
 		"interpreter"
 	],
 	"icon": "images/cscs128.png",
@@ -47,14 +48,14 @@
 		"vscode-debugadapter": "1.33.0"
 	},
 	"devDependencies": {
-		"@types/node": "8.9.3",
 		"@types/mocha": "5.2.5",
-		"typescript": "3.1.6",
+		"@types/node": "8.9.3",
 		"mocha": "5.2.0",
-		"vscode": "1.1.21",
-		"vscode-debugadapter-testsupport": "1.33.0",
 		"tslint": "5.11.0",
-		"vsce": "1.53.2"
+		"typescript": "3.1.6",
+		"vsce": "1.53.2",
+		"vscode": "^1.1.29",
+		"vscode-debugadapter-testsupport": "1.33.0"
 	},
 	"main": "./out/extension",
 	"activationEvents": [

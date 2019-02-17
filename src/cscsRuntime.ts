@@ -26,16 +26,31 @@ export interface StackEntry {
 	file: string;
 }
 
+export abstract class Data {
+    static id = 0;
+
+    public static sameInstance(instanceId : number): boolean {
+      return Data.id === instanceId;
+    }
+    public static getId(): number {
+		return Data.id;
+	  }
+	  public static getNextId(): number {
+		return ++Data.id;
+	  }
+  }
+
 export class CscsRuntime extends EventEmitter {
 
+	private static _instance: CscsRuntime;
+
+	private _instanceId  = 0;
 	private _debugger    = new Net.Socket();
 	private _connectType = 'sockets';
 	private _host        = '127.0.0.1';
 	private _port        = 13337;
 	private _serverBase  = '';
 	private _localBase   = '';
-
-	private static _instance: CscsRuntime;
 
 	private _localVariables = new Array<DebugProtocol.Variable>();
 	public get localVariables() {
@@ -60,12 +75,12 @@ export class CscsRuntime extends EventEmitter {
 	private _fileTotal    = 0;
 	private _fileReceived = 0;
 	private _dataFile     = '';
-	private _fileBytes  : Buffer;//new Buffer();//new Array<Buffer>();
+	private _fileBytes    : Buffer;
 
 	private _gettingData  = false;
 	private _dataTotal    = 0;
 	private _dataReceived = 0;
-	private _dataBytes  : Buffer;//new Buffer();//new Array<Buffer>();
+	private _dataBytes    : Buffer;
 
 	private _queuedCommands = new Array<string>();
 
@@ -96,19 +111,23 @@ export class CscsRuntime extends EventEmitter {
 
 	private constructor() {
 		super();
+		this._instanceId = Data.getNextId();
 		this.initFunctionNames();
 	}
 
 	public static getInstance(reload = false): CscsRuntime {
-		if (this._instance == null || reload) {
-			this._instance = new CscsRuntime();
+		let cscs = CscsRuntime._instance;
+		if (cscs == null || reload ||
+		   (!cscs._connected && !cscs._init) ||
+		    !Data.sameInstance(cscs._instanceId)) {
+				CscsRuntime._instance = new CscsRuntime();
 		}
-		return this._instance;
+		return CscsRuntime._instance;
 	}
 
 	public static startRepl(connectType: string, host: string, port: number) {
-		//console.log('StartREPL ' + host + ":" + port);
 		let cscs = CscsRuntime.getInstance();
+		//cscs.printCSCSOutput('StartREPL ' + host + ":" + port );
 		if (cscs._connected) {
 			return;
 		}
@@ -145,12 +164,12 @@ export class CscsRuntime extends EventEmitter {
 			// we just start to run until we hit a breakpoint or an exception
 			this.continue();
 		}
+		//this.printCSCSOutput('StartDebug ' + host + ":" + port + "(" + this._instanceId + ")");
 	}
 
 	public static sendRepl(repl : string)
 	{
 		let cscs = CscsRuntime.getInstance();
-		//console.log('REPL ' + repl + ' connected to ' + cscs._host + ":" + cscs._port + " " + cscs._connected, '', -1, '');
 		cscs.connectToDebugger();
 		cscs.sendToServer('repl', repl);
 	}
@@ -171,8 +190,8 @@ export class CscsRuntime extends EventEmitter {
 				//console.log('Connected to ' + this._host + ":" + this._port + '...');
 
 				if (this._init) {
-				  this.printInfoMsg('Connected to ' + this._host + ":" + this._port +
-					'. Check the Output CSCS Window');
+				  this.printInfoMsg('CSCS: Connected to ' + this._host + ":" + this._port +
+					'. Check Output CSCS Window for REPL and Debug Console for debugger messages.');
 				}
 				this._connected = true;
 				this._init = false;
@@ -194,13 +213,6 @@ export class CscsRuntime extends EventEmitter {
 			});
 
 			this._debugger.on('data', (data) => {
-				//console.log('  from Debugger: ' + data.toString().substring(0,4).trim() + ', repl:' + this._replSent);
-				if (this._replSent) {
-					//console.log('  from Debugger: ' + data.toString().trim() + ', repl:' + this._replSent);
-					this.sendEvent('onReplMessage', data.toString());
-					this._replSent = false;
-					return;
-				}
 				if (!this._gettingData) {
 					let ind = data.toString().indexOf('\n');
 					this._dataTotal = this._dataReceived = 0;
@@ -246,6 +258,7 @@ export class CscsRuntime extends EventEmitter {
 			this._debugger.on('timeout', () => {
 				if (this._init) {
 					this.printCSCSOutput("Timeout connecting to " + this._host + ":" + this._port);
+					this.printErrorMsg('Timeout connecting to ' + this._host + ":" + this._port);
 					//console.log('Timeout connecting to ' + this._host + ":" + this._port + '...');
 					this._connected = false;
 					//this._debugger.destroy();
@@ -255,7 +268,7 @@ export class CscsRuntime extends EventEmitter {
 			this._debugger.on('close', () => {
 				if (this._init) {
 					this.printCSCSOutput('Could not connect to ' + this._host + ":" + this._port);
-					//this.printErrorMsg('Could not connect to ' + this._host + ":" + this._port);
+					this.printErrorMsg('Could not connect to ' + this._host + ":" + this._port);
 				} /*else {
 					this.printWarningMsg('Connection closed');
 				}*/
@@ -265,6 +278,14 @@ export class CscsRuntime extends EventEmitter {
 		}
 	}
 	public sendToServer(cmd : string, data = "") {
+		let isRepl = cmd.startsWith('repl');
+		//cscs.printCSCSOutput('sendRepl ' + repl + "(" + cscs._instanceId + ")");
+		/*if (isRepl && this._sourceFile != '') {
+			let msg = 'Cannot execute REPL while debugging.';
+			this.printWarningMsg(msg);
+			return;
+		}*/
+
 		let toSend = cmd;
 		if (data != '' || cmd.indexOf('|') < 0) {
 			toSend += '|' + data;
@@ -275,7 +296,7 @@ export class CscsRuntime extends EventEmitter {
 			return;
 		}
 
-		this._replSent = toSend.startsWith('repl');
+		this._replSent = isRepl;
 		this._debugger.write(toSend + "\n");
 	}
 	public printDebugMsg(msg : string) {
@@ -307,6 +328,18 @@ export class CscsRuntime extends EventEmitter {
 		let startVarsData  = 1;
 		let startStackData = 1;
 
+		if (response === 'repl' || response === '_repl') {
+			for (let i = 1; i < lines.length - 1; i++) {
+				let line = lines[i].trim();
+				if (line != '') {
+					this.printCSCSOutput(lines[i]);
+				}
+			}
+			if (response === 'repl') {
+				this.sendEvent('onReplMessage', data.toString());
+			}
+			return;
+		}
 		if (response === 'send_file' && lines.length > 2) {
 			this._gettingFile  = true;
 			this._fileTotal    = Number(lines[currLine++]);
@@ -341,18 +374,15 @@ export class CscsRuntime extends EventEmitter {
 				this._fileTotal = this._fileReceived = 0;
 				this._gettingFile = false;
 				this.printCSCSOutput('Saved remote file to: ' + this._dataFile);
+				if (this._replSent) {
+					this.sendEvent('onReplMessage', 'Saved remote file to: ' + this._dataFile);
+				}
 			}
 			return;
 		}
 
 		if (response === 'end') {
 			this.disconnectFromDebugger();
-			return;
-		}
-		if (response === 'repl') {
-			for (let i = 1; i < lines.length - 1; i++) {
-				this.printCSCSOutput(lines[i]);
-			}
 			return;
 		}
 		if (response === 'vars' || response === 'next' || response === 'exc') {
@@ -436,8 +466,8 @@ export class CscsRuntime extends EventEmitter {
 		if (response !== 'stack' && response !== 'next' && response !== 'file') {
 			this.printCSCSOutput('GOT ' + response + ": " + lines.length + " lines." +
 			                     ' LAST: ' + lines[lines.length - 2] + " : " + lines[lines.length - 1]);
+		}
 	}
-}
 
 	fillVars(lines : string[], startVarsData : number, nbVarsLines : number)  {
 		let counter = 0;
@@ -472,11 +502,14 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	disconnectFromDebugger() {
+		this.printCSCSOutput('Finished debugging.');
 		this.sendToServer('bye');
-		console.log('Finished debugging');
 		this._connected = false;
+		this._sourceFile = '';
 		this._debugger.end();
 		this.sendEvent('end');
+		Data.getNextId();
+		CscsRuntime._instance = CscsRuntime.getInstance(true);
 	}
 
 	fillStackTrace(lines : string[], start = 0) : void {
