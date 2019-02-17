@@ -6,7 +6,7 @@
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { CscsDebugSession } from './cscsDebug';
+//import { CscsDebugSession } from './cscsDebug';
 //import * as vscode from 'vscode';
 //import { OutputChannel, window } from 'vscode';
 
@@ -28,12 +28,12 @@ export interface StackEntry {
 
 export class CscsRuntime extends EventEmitter {
 
-	private _debugger = new Net.Socket();
-	private _connectType : string;
-	private _host : string;
-	private _port : number;
-	private _serverBase : string;
-	private _localBase  : string;
+	private _debugger    = new Net.Socket();
+	private _connectType = 'sockets';
+	private _host        = '127.0.0.1';
+	private _port        = 13337;
+	private _serverBase  = '';
+	private _localBase   = '';
 
 	private static _instance: CscsRuntime;
 
@@ -51,16 +51,21 @@ export class CscsRuntime extends EventEmitter {
 	private _functionsMap = new Map<string, string>();
 
 	private _connected    = false;
-	private _finished     = false;
 	private _init         = true;
 	private _continue     = false;
 	private _isException  = false;
+	private _replSent     = false;
+
+	private _gettingFile  = false;
+	private _fileTotal    = 0;
+	private _fileReceived = 0;
+	private _dataFile     = '';
+	private _fileBytes  : Buffer;//new Buffer();//new Array<Buffer>();
 
 	private _gettingData  = false;
 	private _dataTotal    = 0;
 	private _dataReceived = 0;
-	private _dataFile     = '';
-	private  _bytes  : Buffer;//new Buffer();//new Array<Buffer>();
+	private _dataBytes  : Buffer;//new Buffer();//new Array<Buffer>();
 
 	private _queuedCommands = new Array<string>();
 
@@ -68,7 +73,7 @@ export class CscsRuntime extends EventEmitter {
 	//private _debugSession : CscsDebugSession;
 
 	// the initial (and one and only) file we are 'debugging'
-	private _sourceFile: string;
+	private _sourceFile = '';
 	public get sourceFile() {
 		return this._sourceFile;
 	}
@@ -79,7 +84,7 @@ export class CscsRuntime extends EventEmitter {
 	// This is the next line that will be 'executed'
 	private _originalLine = 0;
 
-	private _stackTrace = new Array<StackEntry>();
+	private _stackTrace      = new Array<StackEntry>();
 
 	// maps from sourceFile to array of Cscs breakpoints
 	private _breakPoints     = new Map<string, CscsBreakpoint[]>();
@@ -87,17 +92,33 @@ export class CscsRuntime extends EventEmitter {
 
 	// since we want to send breakpoint events, we will assign an id to every event
 	// so that the frontend can match events with breakpoints.
-	private _breakpointId = 1;
+	private _breakpointId    = 1;
 
-	constructor(debugSession : CscsDebugSession) {
+	private constructor() {
 		super();
 		this.initFunctionNames();
-		//this._debugSession = debugSession;
 	}
 
-	/**
-	 * Start executing the given program.
-	 */
+	public static getInstance(reload = false): CscsRuntime {
+		if (this._instance == null || reload) {
+			this._instance = new CscsRuntime();
+		}
+		return this._instance;
+	}
+
+	public static startRepl(connectType: string, host: string, port: number) {
+		//console.log('StartREPL ' + host + ":" + port);
+		let cscs = CscsRuntime.getInstance();
+		if (cscs._connected) {
+			return;
+		}
+		cscs._connectType = connectType;
+		cscs._host = host;
+		cscs._port = port;
+
+		cscs.connectToDebugger();
+	}
+
 	public start(program: string, stopOnEntry: boolean, connectType: string,
 		           host: string, port: number, serverBase = "") {
 
@@ -115,7 +136,6 @@ export class CscsRuntime extends EventEmitter {
 
 		this.verifyBreakpoints(this._sourceFile);
 
-        //this._outputChannel = window.createOutputChannel(program);
 		this.connectToDebugger();
 
 		if (stopOnEntry) {
@@ -125,85 +145,150 @@ export class CscsRuntime extends EventEmitter {
 			// we just start to run until we hit a breakpoint or an exception
 			this.continue();
 		}
-
-		CscsRuntime._instance = this;
 	}
 
 	public static sendRepl(repl : string)
 	{
-		CscsRuntime._instance.sendToServer('_repl', repl);
+		let cscs = CscsRuntime.getInstance();
+		//console.log('REPL ' + repl + ' connected to ' + cscs._host + ":" + cscs._port + " " + cscs._connected, '', -1, '');
+		cscs.connectToDebugger();
+		cscs.sendToServer('repl', repl);
 	}
 
 	public connectToDebugger() : void {
-		this._connected = false;
+		if (this._connected) {
+			return;
+		}
 
 		if (this._connectType === "sockets") {
-			this.printCSCSOutput('Connecting to ' + this._host + ":" + this._port + '...');
+			this.printCSCSOutput('Connecting to ' + this._host + ":" + this._port + '...', '', -1, ''); // no new line
+			//console.log('Connecting to ' + this._host + ":" + this._port + '...');
 
 			this._debugger.setTimeout(10 * 1000);
 
 			this._debugger.connect(this._port, this._host, () => {
-				this.printCSCSOutput('Connected to the Debugger Server at ' + this._host + ":" + this._port);
+				this.printCSCSOutput('Connected to the Debugger Server.');
+				//console.log('Connected to ' + this._host + ":" + this._port + '...');
 
 				if (this._init) {
-				  this.printInfoMsg('Check out the results in the Debug Console Window');
+				  this.printInfoMsg('Connected to ' + this._host + ":" + this._port +
+					'. Check the Output CSCS Window');
 				}
 				this._connected = true;
 				this._init = false;
 
-				let serverFilename = this.getServerPath(this._sourceFile);
-				this.sendToServer("file", serverFilename);
-				this.sendAllBreakpontsToServer();
+				if (!this._replSent && this._sourceFile !== '') {
+					let serverFilename = this.getServerPath(this._sourceFile);
+					if (serverFilename !== undefined && serverFilename != '') {
+						//console.log('Sending serverFilename: [' + serverFilename + ']');
+						this.sendToServer("file", serverFilename);
+					}
+					this.sendAllBreakpontsToServer();
+				}
+
 				for (let i = 0; i < this._queuedCommands.length; i++) {
+					//console.log('Sending queued: ' + this._queuedCommands[i]);
 					this.sendToServer(this._queuedCommands[i]);
 				}
 				this._queuedCommands.length = 0;
 			});
 
 			this._debugger.on('data', (data) => {
-				this.processFromDebugger(data);
+				//console.log('  from Debugger: ' + data.toString().substring(0,4).trim() + ', repl:' + this._replSent);
+				if (this._replSent) {
+					//console.log('  from Debugger: ' + data.toString().trim() + ', repl:' + this._replSent);
+					this.sendEvent('onReplMessage', data.toString());
+					this._replSent = false;
+					return;
+				}
+				if (!this._gettingData) {
+					let ind = data.toString().indexOf('\n');
+					this._dataTotal = this._dataReceived = 0;
+					if (ind > 0) {
+						this._dataTotal = Number(data.slice(0, ind));
+						//this.printCSCSOutput('  Received data size: ' + this._dataTotal);
+						if (isNaN(this._dataTotal)) {
+							this._dataTotal = 0;
+						}
+					}
+					if (this._dataTotal === 0) {
+						this.processFromDebugger(data);
+						return;
+					}
+					if (data.length > ind + 1) {
+						data = data.slice(ind + 1);
+					} else {
+						data = '';
+					}
+					this._gettingData = true;
+					//this.printCSCSOutput('  Started collecting data: ' + data.toString().substring(0,4));
+				}
+				if (this._gettingData) {
+					if (this._dataReceived === 0) {
+						this._dataBytes = data;
+						this._dataReceived = data.length;
+					} else {
+					  //this.printCSCSOutput('  EXTRA. Currently: ' + this._dataReceived +
+					  // ', total: ' + this._dataTotal + ', new: ' + data.length);
+						const totalLength = this._dataBytes.length + data.length;
+						this._dataBytes = Buffer.concat([this._dataBytes, data], totalLength);
+						this._dataReceived = totalLength;
+					}
+					if (this._dataReceived >= this._dataTotal) {
+						this._dataTotal = this._dataReceived = 0;
+						this._gettingData = false;
+						//this.printCSCSOutput('  COLLECTED: ' + this._dataBytes.toString().substring(0, 4) + "...");
+						this.processFromDebugger(this._dataBytes);
+					}
+				}
 			});
 
 			this._debugger.on('timeout', () => {
 				if (this._init) {
-					this.printErrorMsg("Timeout connecting to " + this._host + ":" + this._port);
-					this._debugger.destroy();
+					this.printCSCSOutput("Timeout connecting to " + this._host + ":" + this._port);
+					//console.log('Timeout connecting to ' + this._host + ":" + this._port + '...');
+					this._connected = false;
+					//this._debugger.destroy();
 				}
   		});
 
 			this._debugger.on('close', () => {
 				if (this._init) {
 					this.printCSCSOutput('Could not connect to ' + this._host + ":" + this._port);
+					//this.printErrorMsg('Could not connect to ' + this._host + ":" + this._port);
 				} /*else {
 					this.printWarningMsg('Connection closed');
 				}*/
+				//console.log('Closed connection to ' + this._host + ":" + this._port + '...');
 				this._connected = false;
 			});
 		}
 	}
 	public sendToServer(cmd : string, data = "") {
-		if (this._finished) {
-			return;
+		let toSend = cmd;
+		if (data != '' || cmd.indexOf('|') < 0) {
+			toSend += '|' + data;
 		}
 		if (!this._connected) {
-			console.log('Connection not valid. Queueing [' + cmd + '] when connected.');
-			this._queuedCommands.push(cmd);
+			//console.log('Connection not valid. Queueing [' + toSend + '] when connected.');
+			this._queuedCommands.push(toSend);
 			return;
 		}
-		this.printDebugMsg('sending to debugger: ' + cmd + ' ' + data);
-		this._debugger.write(cmd + "|" + data + "\n");
+
+		this._replSent = toSend.startsWith('repl');
+		this._debugger.write(toSend + "\n");
 	}
 	public printDebugMsg(msg : string) {
 		//console.info('    _' + msg);
 	}
-	public printCSCSOutput(msg : string, file = "", line = -1) {
+	public printCSCSOutput(msg : string, file = "", line = -1, newLine = '\n') {
 		//console.error('CSCS> ' + msg + ' \r\n');
 		//console.error();
 		file = file === "" ?  this._sourceFile : file;
 		file = this.getLocalPath(file);
 		line = line >= 0 ? line : this._originalLine >= 0 ? this._originalLine : this._sourceFile.length - 1;
 		//this.printDebugMsg("PRINT " + msg + " " + file + " " + line);
-		this.sendEvent('output', msg, file, line, 0);
+		this.sendEvent('output', msg, file, line, 0, newLine);
 	}
 	public printInfoMsg(msg : string) {
 		this.sendEvent('onInfoMessage', msg);
@@ -218,46 +303,44 @@ export class CscsRuntime extends EventEmitter {
 	protected processFromDebugger(data : any) {
 		let lines = data.toString().split('\n');
 		let currLine = 0;
-		let response = lines[currLine++];
-		let fileStr = lines.length < 2 ? 'X' : lines[1];
-		let lineStr = lines.length < 3 ? 'X' : lines[2];
-		this.printDebugMsg('got: ' + response + ' ' + fileStr + ' line=' + lineStr + ' len=' + lines.length);
+		let response = lines[currLine++].trim();
 		let startVarsData  = 1;
 		let startStackData = 1;
 
 		if (response === 'send_file' && lines.length > 2) {
-			this._gettingData  = true;
-			this._dataTotal    = Number(lines[currLine++]);
+			this._gettingFile  = true;
+			this._fileTotal    = Number(lines[currLine++]);
 			this._dataFile     = lines[currLine++];
-			this._dataReceived = 0;
+			this._fileReceived = 0;
 			if (lines.length <= currLine + 1) {
 				return;
 			}
 			let ind = data.toString().indexOf(this._dataFile);
 			if (ind > 0 && data.length > ind + this._dataFile.length + 1) {
 				data = data.slice(ind + this._dataFile.length + 1);
-				this._bytes = data;
-				this._dataReceived += this._bytes.length;
+				//this._fileBytes = data;
+				//this._fileReceived = this._fileBytes.length;
 			}
 		}
-		if (this._gettingData) {
-			if (this._dataReceived === 0) {
-				this._bytes = data;
-				this._dataReceived = this._bytes.length;
+		if (this._gettingFile) {
+			if (this._fileReceived === 0) {
+				this._fileBytes = data;
+				this._fileReceived = this._fileBytes.length;
 			} else if (response !== 'send_file') {
-				const totalLength = this._bytes.length + data.length;
-				this._bytes = Buffer.concat([this._bytes, data], totalLength);
-				this._dataReceived = totalLength;
+				const totalLength = this._fileBytes.length + data.length;
+				this._fileBytes = Buffer.concat([this._fileBytes, data], totalLength);
+				this._fileReceived = totalLength;
 			}
-			if (this._dataReceived >= this._dataTotal) {
-				let buffer = Buffer.from(this._bytes);
+			if (this._fileReceived >= this._fileTotal) {
+				let buffer = Buffer.from(this._fileBytes);
 				fs.writeFileSync(this._dataFile, buffer, (err) => {
 					if (err) {
 						throw err;
 					}
 				});
-				this._dataTotal = this._dataReceived = 0;
-				this._gettingData = false;
+				this._fileTotal = this._fileReceived = 0;
+				this._gettingFile = false;
+				this.printCSCSOutput('Saved remote file to: ' + this._dataFile);
 			}
 			return;
 		}
@@ -321,7 +404,7 @@ export class CscsRuntime extends EventEmitter {
 			this._globalVariables.push({
 				name: '__line',
 				type: 'number',
-				value: String(this._originalLine + 1),
+				value: String(this._originalLine + 1).trimRight(),
 				variablesReference: 0
 			});
 			if (this._originalLine >= 0) {
@@ -350,7 +433,11 @@ export class CscsRuntime extends EventEmitter {
 			this.disconnectFromDebugger();
 			return;
 		}
+		if (response !== 'stack' && response !== 'next' && response !== 'file') {
+			this.printCSCSOutput('GOT ' + response + ": " + lines.length + " lines." +
+			                     ' LAST: ' + lines[lines.length - 2] + " : " + lines[lines.length - 1]);
 	}
+}
 
 	fillVars(lines : string[], startVarsData : number, nbVarsLines : number)  {
 		let counter = 0;
@@ -364,7 +451,7 @@ export class CscsRuntime extends EventEmitter {
 			let name    = tokens[0];
 			let globLoc = tokens[1];
 			let type    = tokens[2];
-			let value = tokens.slice(3).join(':');
+			let value   = tokens.slice(3).join(':').trimRight();
 			if (type === 'string') {
 				value = '"' + value + '"';
 			}
@@ -384,11 +471,10 @@ export class CscsRuntime extends EventEmitter {
 		}
 	}
 
-	public disconnectFromDebugger() {
+	disconnectFromDebugger() {
 		this.sendToServer('bye');
-		console.error('Finished debugging');
+		console.log('Finished debugging');
 		this._connected = false;
-		this._finished = true;
 		this._debugger.end();
 		this.sendEvent('end');
 	}
@@ -557,11 +643,15 @@ export class CscsRuntime extends EventEmitter {
 			this._localBase = '';
 			return;
 		}
+		pathname = Path.resolve(pathname);
 		this._localBase = Path.dirname(pathname);
 	}
 
 	getLocalPath(pathname: string)
 	{
+		if (pathname === undefined || pathname === null || pathname === "") {
+			return '';
+		}
 		if (this._serverBase === "") {
 			return pathname;
 		}
@@ -585,7 +675,7 @@ export class CscsRuntime extends EventEmitter {
 
 	public setBreakPoint(path: string, line: number) : CscsBreakpoint {
 		//path = Path.normalize(path);
-		let filename = Path.basename(path);
+		let filename = Path.resolve(path);
 
 		const bp = <CscsBreakpoint> { verified: false, line, id: this._breakpointId++ };
 		let bps = this._breakPoints.get(filename);
@@ -611,8 +701,7 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	private getBreakPoint(line: number) : CscsBreakpoint  | undefined {
-		let filename = Path.basename(this._sourceFile);
-		let bpMap = this._breakPointMap.get(filename);
+		let bpMap = this._breakPointMap.get(this._sourceFile);
 		if (!bpMap) {
 			return undefined;
 		}
@@ -622,7 +711,7 @@ export class CscsRuntime extends EventEmitter {
 
 	public clearBreakPoint(path: string, line: number) : CscsBreakpoint | undefined {
 		//path = Path.normalize(path);
-		path = Path.basename(path);
+		path = Path.resolve(path);
 		let bpMap = this._breakPointMap.get(path);
 		if (bpMap) {
 			bpMap.delete(line);
@@ -642,17 +731,18 @@ export class CscsRuntime extends EventEmitter {
 
 	public clearBreakpoints(path: string): void {
 		//path = Path.normalize(path);
-		path = Path.basename(path);
+		path = Path.resolve(path);
 		this._breakPoints.delete(path);
 		this._breakPointMap.delete(path);
 	}
 
 	private loadSource(filename: string) {
+		filename = Path.resolve(filename);
 		if (this._sourceFile === filename) {
 			return;
 		}
 		if (this.verifyDebug(filename)) {
-			this._sourceFile =  Path.normalize(filename);
+			this._sourceFile =  filename;
 			this._sourceLines = readFileSync(this._sourceFile).toString().split('\n');
 		}
 	}
@@ -662,8 +752,11 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	private verifyBreakpoints(path: string) : void {
+		if (path === undefined || path === null ) {
+			return;
+		}
 		path = Path.normalize(path);
-		let localPath = Path.basename(path);
+		let localPath = Path.resolve(path);
 		let bpsMap = this._breakPointMap.get(localPath);
 		if (!this.verifyDebug(localPath)) {
 			return;

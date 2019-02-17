@@ -61,7 +61,7 @@ export class CscsDebugSession extends LoggingDebugSession {
 			console.log("you entered: [" + d.toString().trim() + "]");
 		});
 
-		this._runtime = new CscsRuntime(this);
+		this._runtime = CscsRuntime.getInstance(true);
 
 		// setup event handlers
 		this._runtime.on('stopOnEntry', () => {
@@ -79,14 +79,14 @@ export class CscsDebugSession extends LoggingDebugSession {
 		this._runtime.on('breakpointValidated', (bp: CscsBreakpoint) => {
 			this.sendEvent(new BreakpointEvent('changed', <DebugProtocol.Breakpoint>{ verified: bp.verified, id: bp.id }));
 		});
-		this._runtime.on('output', (text: string, filePath: string, line: number, column: number) => {
-			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
+		this._runtime.on('output', (text: string, filePath: string, line: number, column: number, newLine = '\n') => {
+			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}` + newLine);
 			e.body.source = this.createSource(filePath);
 			e.body.line = this.convertDebuggerLineToClient(line);
 			e.body.column = this.convertDebuggerColumnToClient(column);
 			this.sendEvent(e);
 		});
-		this._runtime.on('onInfoMessage', (msg : string) => {
+		/*this._runtime.on('onInfoMessage', (msg : string) => {
 			//vscode.window.showInformationMessage('CSCS: ' + msg);
 			console.info(msg);
 		});
@@ -97,7 +97,7 @@ export class CscsDebugSession extends LoggingDebugSession {
 		this._runtime.on('onErrorMessage', (msg : string) => {
 			//vscode.window.showErrorMessage('CSCS: ' + msg);
 			console.error(msg);
-		});
+		});*/
 		this._runtime.on('end', () => {
 			this.sendEvent(new TerminatedEvent());
 		});

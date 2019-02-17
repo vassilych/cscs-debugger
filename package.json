@@ -2,7 +2,7 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger",
 	"description": "CSCS (Customized Scripting in C#) Debugger",
-	"version": "0.3.1",
+	"version": "0.3.3",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
@@ -61,7 +61,8 @@
 		"onDebug",
 		"onCommand:extension.cscs-debug.getProgramName",
 		"onCommand:extension.cscs-debug.runLocal",
-		"onCommand:extension.cscs-debug.runRemote"
+		"onCommand:extension.cscs-debug.runRemote",
+		"onCommand:extension.cscs-debug.repl"
 	],
 	"contributes": {
 		"languages": [
@@ -75,7 +76,7 @@
 					".cscs",
 					".mqs"
 				],
-				"configuration": "./language-configuration.json"
+				"configuration": "./syntaxes/language-configuration.json"
 			}
 		],
 		"grammars": [
@@ -92,19 +93,26 @@
 		],
 		"commands": [
 			{
-			  "command": "extension.cscs-debug.getProgramName",
-			  "title": "Ask file name to run",
-			  "category": "CSCS"
-			},
-			{
-				"command": "extension.cscs-debug.runLocal",
-				"title": "Run file locally",
+				"command": "extension.cscs-debug.getProgramName",
+				"title": "Ask file name to run",
 				"category": "CSCS"
 			},
 			{
-			  "command": "extension.cscs-debug.runRemote",
-			  "title": "Run file remotely",
-			  "category": "CSCS"
+				"command": "extension.cscs-debug.runLocal",
+				"title": "Debug file",
+				"category": "CSCS"
+			},
+			{
+				"command": "extension.cscs-debug.repl",
+				"title": "CSCS REPL"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "extension.cscs-debug.repl",
+				"key": "ctrl+8",
+				"mac": "cmd+8",
+				"when": "editorTextFocus"
 			}
 		],
 		"configuration": {
@@ -172,7 +180,7 @@
 							},
 							"serverBase": {
 								"type": "string",
-								"description": "Name of the server host to connect to.",
+								"description": "Server base path.",
 								"default": ""
 							},
 							"trace": {
@@ -187,19 +195,8 @@
 					{
 						"type": "cscs",
 						"request": "launch",
-						"name": "CSCS/MaquetteScript Local",
+						"name": "CSCS Launch",
 						"program": "${workspaceFolder}/${command:RunLocal}",
-						"stopOnEntry": true,
-						"connectType": "sockets",
-						"serverPort": 13337,
-						"serverHost": "127.0.0.1",
-						"serverBase": ""
-					},
-					{
-						"type": "cscs",
-						"request": "launch",
-						"name": "CSCS/MaquetteScript Remote",
-						"program": "${workspaceFolder}/${command:RunRemote}",
 						"stopOnEntry": true,
 						"connectType": "sockets",
 						"serverPort": 13337,
@@ -209,28 +206,13 @@
 				],
 				"configurationSnippets": [
 					{
-						"label": "CSCS Debug: Local",
-						"description": "Configuration for debugging locally a selected CSCS file.",
+						"label": "CSCS Debug",
+						"description": "Configuration for debugging a CSCS file.",
 						"body": {
 							"type": "cscs",
 							"request": "launch",
-							"name": "CSCS/MaquetteScript",
+							"name": "CSCS Launch",
 							"program": "^\"\\${workspaceFolder}/\\${command:RunLocal}\"",
-							"stopOnEntry": true,
-							"connectType": "sockets",
-							"serverPort": 13337,
-							"serverHost": "127.0.0.1",
-							"serverBase": ""
-						}
-					},
-					{
-						"label": "CSCS Debug: Remote",
-						"description": "Configuration for debugging remotely a selected CSCS file.",
-						"body": {
-							"type": "cscs",
-							"request": "launch",
-							"name": "CSCS/MaquetteScript Remote",
-							"program": "^\"\\${workspaceFolder}/\\${command:RunRemote}\"",
 							"stopOnEntry": true,
 							"connectType": "sockets",
 							"serverPort": 13337,
