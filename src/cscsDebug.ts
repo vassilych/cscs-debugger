@@ -61,7 +61,7 @@ export class CscsDebugSession extends LoggingDebugSession {
 			console.log("you entered: [" + d.toString().trim() + "]");
 		});
 
-		this._runtime = CscsRuntime.getInstance(true);
+		this._runtime = CscsRuntime.getNewInstance(false);
 
 		// setup event handlers
 		this._runtime.on('stopOnEntry', () => {

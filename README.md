@@ -90,10 +90,11 @@ The corresponding `launch.json` configuration looks like this:
 
 ## The REPL Extension
 
-* Here is the REPL Extension in action using an iOS device. You can see that you can add and remove widgets on the fly! Download and install it [here](https://marketplace.visualstudio.com/items?itemName=vassilik.cscs-repl).
+* Here is the REPL Extension in action using an iOS device. You can see that you can add and remove widgets on the fly!
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-repl/master/images/repl_ios_cscs.gif)
 
+<br>
 * Here is the REPL Extension with a normal CSCS script.
 
 ![General Features](https://raw.githubusercontent.com/vassilych/cscs-repl/master/images/repl_cscs.gif)

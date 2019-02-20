@@ -42,50 +42,54 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let history       = new Array<string>();
 
-	let cscsRuntime   = CscsRuntime.getInstance();
-	CscsRuntime.startRepl(connectType, host, port);
+	const initRuntime = (cscsRuntime : CscsRuntime) => {
 
-	cscsRuntime.on('onInfoMessage', (msg : string) => {
-		vscode.window.showInformationMessage(msg);
-	});
-	cscsRuntime.on('onWarningMessage', (msg : string) => {
-		vscode.window.showWarningMessage('REPL: ' + msg);
-	});
-	cscsRuntime.on('onErrorMessage', (msg : string) => {
-		vscode.window.showErrorMessage('REPL: ' + msg);
-	});
-
-	cscsRuntime.on('onReplMessage', (data : string) => {
-		if (init) {
-			return;
-		}
-		outputChannel.append('REPL> ');
-		let lines = data.split('\\n');
-		if (lines.length === 1) {
-			lines = data.split('\n');
-		}
-		let counter = 0;
-		for (let i = 0; i < lines.length; i++) {
-			let line = lines[i].trim();
-			if (i == 0 && line.startsWith("repl")) {
-				continue;
+		cscsRuntime.on('onInfoMessage', (msg : string) => {
+			vscode.window.showInformationMessage(msg);
+		});
+		cscsRuntime.on('onWarningMessage', (msg : string) => {
+			vscode.window.showWarningMessage('REPL: ' + msg);
+		});
+		cscsRuntime.on('onErrorMessage', (msg : string) => {
+			vscode.window.showErrorMessage('REPL: ' + msg);
+		});
+	
+		cscsRuntime.on('onReplMessage', (data : string) => {
+			if (init) {
+				return;
 			}
-			if (line === "" && i == lines.length - 1) {
-				break;
+			outputChannel.append('REPL> ');
+			let lines = data.split('\\n');
+			if (lines.length === 1) {
+				lines = data.split('\n');
 			}
-			outputChannel.appendLine(line);
-			counter++;
-			if (line != '') {
-				if (!line.startsWith('"')) {
-					line = '"' + line + '"';
+			let counter = 0;
+			for (let i = 0; i < lines.length; i++) {
+				let line = lines[i].trim();
+				if (i === 0 && line.startsWith("repl")) {
+					continue;
 				}
-				history.push(line);
+				if (line === "" && i === lines.length - 1) {
+					break;
+				}
+				outputChannel.appendLine(line);
+				counter++;
+				if (line !== '') {
+					if (!line.startsWith('"')) {
+						line = '"' + line + '"';
+					}
+					history.push(line);
+				}
 			}
-		}
-		if (counter === 0) {
-			outputChannel.appendLine("");
-		}
-	});
+			if (counter === 0) {
+				outputChannel.appendLine("");
+			}
+			outputChannel.show(true);
+		});
+	};
+
+	let msgRuntime   = CscsRuntime.getInstance(true);
+	initRuntime(msgRuntime);
 
 	const getCode = () => {
 		let textEditor = vscode.window.activeTextEditor;
@@ -124,7 +128,11 @@ export function activate(context: vscode.ExtensionContext) {
 			code = replaceReplHistory(code, -1*i);
 		}
 		init = false;
-		CscsRuntime.sendRepl(code);
+
+		let cscsRuntime   = CscsRuntime.getNewInstance(true);
+		initRuntime(cscsRuntime);
+		cscsRuntime.startRepl(connectType, host, port);	
+		cscsRuntime.sendRepl(code);
 	});
 	context.subscriptions.push(disposable);
 
