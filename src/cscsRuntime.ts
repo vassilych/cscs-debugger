@@ -65,6 +65,7 @@ export class CscsRuntime extends EventEmitter {
 	private _variablesMap = new Map<string, string>();
 	private _hoversMap    = new Map<string, string>();
 	private _functionsMap = new Map<string, string>();
+	private _filenamesMap = new Map<string, string>();
 
 	private _connected    = false;
 	private _init         = true;
@@ -634,10 +635,13 @@ export class CscsRuntime extends EventEmitter {
 		if (!this._connected) {
 			return;
 		}
-		//path = Path.normalize(path);
+
 		path = Path.resolve(path);
+		this.cacheFilename(path);
+		let filename = this.getActualFilename(path);
+
 		let data = path;
-		let bps = this._breakPoints.get(path) || [];
+		let bps = this._breakPoints.get(filename) || [];
 
 		for (let i = 0; i < bps.length; i ++) {
 			let entry = bps[i].line;
@@ -709,6 +713,8 @@ export class CscsRuntime extends EventEmitter {
 	public setBreakPoint(path: string, line: number) : CscsBreakpoint {
 		//path = Path.normalize(path);
 		let filename = Path.resolve(path);
+		this.cacheFilename(filename);
+		filename = this.getActualFilename(path);
 
 		const bp = <CscsBreakpoint> { verified: false, line, id: this._breakpointId++ };
 		let bps = this._breakPoints.get(filename);
@@ -733,8 +739,26 @@ export class CscsRuntime extends EventEmitter {
 		return bp;
 	}
 
+	cacheFilename(filename: string) {
+		let lower = filename.toLowerCase();
+		if (lower === filename) {
+			return;
+		}
+		this._filenamesMap[lower] = filename;
+	}
+	getActualFilename(filename: string): string {
+		//filename = Path.normalize(filename);
+		let pathname = Path.resolve(filename);
+		let lower = pathname.toLowerCase();
+		let result = this._filenamesMap.get(lower);
+		if (result === undefined || result === null) {
+			return filename;
+		}
+		return result;
+	}
 	private getBreakPoint(line: number) : CscsBreakpoint  | undefined {
-		let bpMap = this._breakPointMap.get(this._sourceFile);
+		let filename = this.getActualFilename(this._sourceFile);
+		let bpMap = this._breakPointMap.get(filename);
 		if (!bpMap) {
 			return undefined;
 		}
@@ -743,14 +767,13 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	public clearBreakPoint(path: string, line: number) : CscsBreakpoint | undefined {
-		//path = Path.normalize(path);
-		path = Path.resolve(path);
-		let bpMap = this._breakPointMap.get(path);
+		let filename = this.getActualFilename(path);
+		let bpMap = this._breakPointMap.get(filename);
 		if (bpMap) {
 			bpMap.delete(line);
 		}
 
-		let bps = this._breakPoints.get(path);
+		let bps = this._breakPoints.get(filename);
 		if (bps) {
 			const index = bps.findIndex(bp => bp.line === line);
 			if (index >= 0) {
@@ -763,10 +786,9 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	public clearBreakpoints(path: string): void {
-		//path = Path.normalize(path);
-		path = Path.resolve(path);
-		this._breakPoints.delete(path);
-		this._breakPointMap.delete(path);
+		let filename = this.getActualFilename(path);
+		this._breakPoints.delete(filename);
+		this._breakPointMap.delete(filename);
 	}
 
 	private loadSource(filename: string) {
@@ -788,10 +810,9 @@ export class CscsRuntime extends EventEmitter {
 		if (path === undefined || path === null ) {
 			return;
 		}
-		path = Path.normalize(path);
-		let localPath = Path.resolve(path);
-		let bpsMap = this._breakPointMap.get(localPath);
-		if (!this.verifyDebug(localPath)) {
+		let filename = this.getActualFilename(path);
+		let bpsMap = this._breakPointMap.get(filename);
+		if (!this.verifyDebug(filename)) {
 			return;
 		}
 		//this.printDebugMsg("Verifying " + path);
