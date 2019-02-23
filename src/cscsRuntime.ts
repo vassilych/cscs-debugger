@@ -548,6 +548,14 @@ export class CscsRuntime extends EventEmitter {
 		if (hover) {
 			return hover;
 		}
+		let ind = lower.toString().indexOf('.');
+		if (ind >= 0 && ind < lower.length - 1) {
+			hover = this._functionsMap.get(lower.substring(ind + 1));
+			if (hover) {
+				return hover;
+			}
+		}
+	
 		return key;
 	}
 	/**
@@ -896,18 +904,27 @@ export class CscsRuntime extends EventEmitter {
 
 		this._functionsMap.set("function", "function f(arg1, arg2, ...) { ... } : CSCS custom interpreted function (use cfunction for pre-compiled functions)");
 		this._functionsMap.set("cfunction", "cfunction <retType> f(<type1> arg1, <type2> arg2, ...) { ... } : CSCS function to be precompiled");
-		this._functionsMap.set("print", "print(arg1, arg2, ...): Prints passed arguments to console");
-		this._functionsMap.set("write", "write(arg1, arg2, ...): Prints passed arguments to console on the same line");
-		this._functionsMap.set("test",  "test(arg1, arg2): Tests if arg1 is equal to arg2");
-		this._functionsMap.set("type",  "type(arg): Returns type of the passed arg");
-		this._functionsMap.set("isInteger", "isInteger(arg): Tests if arg is an integer");
+		this._functionsMap.set("print", "Print(arg1, arg2, ...): Prints passed arguments to console");
+		this._functionsMap.set("write", "Write(arg1, arg2, ...): Prints passed arguments to console on the same line");
+		this._functionsMap.set("test",  "Test(arg1, arg2): Tests if arg1 is equal to arg2");
+		this._functionsMap.set("isInteger", "IsInteger(arg): Tests if arg is an integer");
 		this._functionsMap.set("include", "include(filename): includes CSCS code from the filename");
-		this._functionsMap.set("substr", "substr(arg, from, length): Returns a substring of arg");
+		this._functionsMap.set("substring", "Substring(arg, from, length): Returns a substring of arg");
+		this._functionsMap.set("pstime", "Returns process CPU time in milliseconds");
+		this._functionsMap.set("now", "Now(format='HH:mm:ss.fff'): Returns current date-time according to the format");
 
-		this._functionsMap.set("pow", "pow(base, n): Returns base raised to the power of n");
-		this._functionsMap.set("exp", "exp(x): Returns e (2.718281828...) raised to the power of x");
-		this._functionsMap.set("pi", "pi: Pi constant (3.141592653589793...) ");
-		this._functionsMap.set("sin", "sin(x): Returns sine of x");
-		this._functionsMap.set("cos", "cos(x): Returns cosine of x");
+		this._functionsMap.set("pow", "Pow(base, n): Returns base raised to the power of n");
+		this._functionsMap.set("exp", "Exp(x): Returns e (2.718281828...) raised to the power of x");
+		this._functionsMap.set("pi", "Pi: Pi constant (3.141592653589793...) ");
+		this._functionsMap.set("sin", "Sin(x): Returns sine of x");
+		this._functionsMap.set("cos", "Cos(x): Returns cosine of x");
+
+		this._functionsMap.set("size", "Returns number of elements in a list or number of characters in a string");
+		this._functionsMap.set("type",  "Returns variable type");
+		this._functionsMap.set("upper", "Converts to upper case");
+		this._functionsMap.set("lower", "Converts to lower case");
+		this._functionsMap.set("first", "Returns first element of a list or a first character of a string");
+		this._functionsMap.set("last",  "Returns last element of a list or a last character of a string");
+		this._functionsMap.set("properties", "{Properties, Type, Size, String, First, Last, Upper, Lower}");
 	}
 }
