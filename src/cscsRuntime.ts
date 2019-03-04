@@ -173,7 +173,8 @@ export class CscsRuntime extends EventEmitter {
 
 	public sendRepl(repl : string)
 	{
-		this.sendToServer('repl', repl);
+		let cmd = repl.replace(/\n/g, ' ').replace(/\r/g, ' ');
+		this.sendToServer('repl', cmd);
 	}
 
 	public connectToDebugger() : void {
@@ -925,6 +926,7 @@ export class CscsRuntime extends EventEmitter {
 		this._functionsMap.set("lower", "Converts to lower case");
 		this._functionsMap.set("first", "Returns first element of a list or a first character of a string");
 		this._functionsMap.set("last",  "Returns last element of a list or a last character of a string");
+		this._functionsMap.set("tokenize",  "Returns list of tokens after separating the string according to a separator");
 		this._functionsMap.set("properties", "{Properties, Type, Size, String, First, Last, Upper, Lower}");
 	}
 }
