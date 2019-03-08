@@ -2,7 +2,7 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger & REPL",
 	"description": "CSCS (Customized Scripting in C#) Debugger and REPL Extension",
-	"version": "0.4.3",
+	"version": "0.4.6",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
@@ -66,7 +66,7 @@
 		"onCommand:extension.cscs-debug.runRemote",
 		"onCommand:extension.cscs-debug.repl",
 		"onCommand:cscs.repl.start",
-		"onWebviewPanel:repl"
+		"onWebviewPanel:cscs.repl"
 	],
 	"contributes": {
 		"languages": [

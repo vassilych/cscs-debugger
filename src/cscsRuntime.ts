@@ -171,10 +171,38 @@ export class CscsRuntime extends EventEmitter {
 		//this.printCSCSOutput('StartDebug ' + host + ":" + port + "(" + this._instanceId + ")");
 	}
 
-	public sendRepl(repl : string)
+	splitREPL(repl: string)
 	{
-		let cmd = repl.replace(/\n/g, ' ').replace(/\r/g, ' ');
-		this.sendToServer('repl', cmd);
+
+
+		
+	}
+
+	public sendRepl(repl : string) : string
+	{
+		let start = 0;
+		let end   = -1;
+		let filtered = ''
+		while (true) {
+			start = repl.indexOf('//', end + 1);
+			if (start < 0) {
+				filtered += repl.substr(end + 1);
+				break;
+			}
+			if (start > end + 1) {
+				filtered += repl.substr(end + 1, start - end - 1);
+			}
+			end = repl.indexOf('\n', start);
+			if (end < 0) {
+				break;
+			}
+		}
+
+		let cmd = filtered.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
+		if (cmd !== '') {
+			this.sendToServer('repl', cmd);
+		}
+		return cmd;
 	}
 
 	public connectToDebugger() : void {
@@ -197,6 +225,7 @@ export class CscsRuntime extends EventEmitter {
 				  this.printInfoMsg('CSCS: Connected to ' + this._host + ":" + this._port +
 					'. Check Output CSCS Window for REPL and Debug Console for Debugger Messages');
 				}
+				this.sendEvent('onStatusChange', 'Connected to ' + this._host + ":" + this._port);
 				CscsRuntime._firstRun = false;
 				this._init = false;
 

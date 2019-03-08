@@ -10,7 +10,7 @@ import * as Net from 'net';
 import * as Path from 'path';
 
 import { CscsRuntime } from './cscsRuntime';
-import { MainPanel } from './webview';
+import { MainPanel, REPLSerializer } from './webview';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -22,8 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
 	let host          = config.get('serverHost', '127.0.0.1');
 	let port          = config.get('serverPort', 13337);
 
-	let cmdHistory    = new Array<string>();
-	let respHistory   = new Array<string>();
+	//let cmdHistory    = new Array<string>();
+	//let respHistory   = new Array<string>();
 
 	const registeredCommand = () => {
 		let textEditor = vscode.window.activeTextEditor;
@@ -42,37 +42,17 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand(
 		'extension.cscs-debug.runLocal', registeredCommand));
 
-	// CSCS REPLWeb View stuff
-	let webInstance : MainPanel;
-	context.subscriptions.push(vscode.commands.registerCommand('cscs.repl.start', () => {
-		webInstance = MainPanel.createOrShow(context.extensionPath);
-		//dialog.showSaveDialog((fileName) => {
-		//}); 
-		webInstance.on('onRepl', (code : string) => {
-			let cscsRuntime   = CscsRuntime.getNewInstance(true);
-			initRuntime(cscsRuntime);
-			cscsRuntime.startRepl(connectType, host, port);
-			code = replaceReplHistory(code);
-			init = false;
-			cscsRuntime.sendRepl(code);
-			cmdHistory.push(code);
-		});
-	}));
-
-	if (vscode.window.registerWebviewPanelSerializer) {
-		vscode.window.registerWebviewPanelSerializer(MainPanel.viewType, {
-			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-				console.log(`Got state: ${state}`);
-				MainPanel.revive(webviewPanel, context.extensionPath);
-			}
-		});
-	}	
-
-
 	const initRuntime = (cscsRuntime : CscsRuntime) => {
 
 		cscsRuntime.on('onInfoMessage', (msg : string) => {
 			vscode.window.showInformationMessage(msg);
+		});
+		cscsRuntime.on('onStatusChange', (msg : string) => {
+			MainPanel.status = msg;
+			//if (MainPanel.currentPanel) {
+			//	MainPanel.currentPanel.update();
+			//}
+			vscode.window.setStatusBarMessage(msg);
 		});
 		cscsRuntime.on('onWarningMessage', (msg : string) => {
 			vscode.window.showWarningMessage('REPL: ' + msg);
@@ -82,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	
 		cscsRuntime.on('onReplMessage', (data : string) => {
-			if (init) {
+			if (init && MainPanel.init) {
 				return;
 			}
 
@@ -101,8 +81,8 @@ export function activate(context: vscode.ExtensionContext) {
 					break;
 				}
 				outputChannel.appendLine(line);
-				if (webInstance !== null && webInstance !== undefined) {
-					webInstance.sendRepl(line);
+				if (MainPanel.currentPanel) {
+					MainPanel.currentPanel.sendReplResponse(line);
 				}
 	
 				counter++;
@@ -110,17 +90,27 @@ export function activate(context: vscode.ExtensionContext) {
 					if (!line.startsWith('"') && isNaN(Number(line))) {
 						line = '"' + line + '"';
 					}
-					respHistory.push(line);
+					//respHistory.push(line);
 				}
 			}
 			if (counter === 0) {
 				outputChannel.appendLine("");
 			}
-			if (webInstance === null || webInstance === undefined) {
+			if (MainPanel.currentPanel === null || MainPanel.currentPanel === undefined) {
 				outputChannel.show(true);
 			}
 		});
 	};
+
+	// CSCS REPLWeb View stuff
+	context.subscriptions.push(vscode.commands.registerCommand('cscs.repl.start', () => {
+		MainPanel.createOrShow(context.extensionPath);
+		REPLSerializer.init();
+	}));
+
+	MainPanel.setPath(context.extensionPath);
+	let serializer = new REPLSerializer(connectType, host, port, initRuntime);
+	vscode.window.registerWebviewPanelSerializer(MainPanel.viewType, serializer);
 
 	let msgRuntime   = CscsRuntime.getInstance(true);
 	initRuntime(msgRuntime);
@@ -139,33 +129,11 @@ export function activate(context: vscode.ExtensionContext) {
 		return text.trim();
 	};
 
-	const replaceReplHistory = (repl: string) => {
-		for (let i = 20; i > 0; i--) {
-			repl = replaceReplHistoryIndex(repl, i);
-		}
-		for (let i = 20; i > 0; i--) {
-			repl = replaceReplHistoryIndex(repl, -1*i);
-		}
-		return repl;
-	}
-
-	const replaceReplHistoryIndex = (repl: string, index: number) => {
-		let arrIndex = index > 0 ? respHistory.length - index : -1 * index - 1;
-		if (arrIndex >= respHistory.length  || arrIndex < 0) {
-			return repl;
-		}
-		let token = '_' + index;
-		repl = repl.replace(token, respHistory[arrIndex]);
-		return repl;
-	}
-
 	let disposable = vscode.commands.registerCommand('extension.cscs-debug.repl', () => {
 		let code = getCode();
 		if (code === '') {
 			return;
 		}
-		//vscode.window.showInformationMessage('REPL: ' + code);
-		code = replaceReplHistory(code);
 		init = false;
 
 		let cscsRuntime   = CscsRuntime.getNewInstance(true);
@@ -184,6 +152,12 @@ export function deactivate() {
 	// nothing to do
 }
 
+export class Subscriber  {
+	async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+		//console.log(`Got state: ${state}`);
+		MainPanel.revive(webviewPanel);
+	}
+}
 class CscsConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	private _server?: Net.Server;

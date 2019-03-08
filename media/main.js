@@ -2,16 +2,18 @@
 // It cannot access the main VS Code APIs directly.
 
 (function () {
-    const vscode = acquireVsCodeApi();
+    const vscode   = acquireVsCodeApi();
 
-    const PROMPT = 'REPL> ';
+    const PROMPT   = 'REPL> ';
+    const PROMPT_  = PROMPT.trim();
 
-    const oldState = vscode.getState();
-    console.log(oldState);
+    const previousState = vscode.getState();
+    let outputData = previousState ? previousState.outputData : '';
 
-    const output  = document.getElementById('output');
-    //const entry   = document.getElementById('entry');
-    //const display = document.getElementById('display');
+    const output   = document.getElementById('output');
+
+    //const entry    = document.getElementById('entry');
+    //const display  = document.getElementById('display');
 
     //entry.focus();
     output.focus();
@@ -24,7 +26,6 @@
     var current           = -1;
     var running           = false;
     var currRunCmd        = 0;
-    var outputData        = '';
     var arrowMode         = false;
     //display.innerHTML = PROMPT;
 
@@ -32,11 +33,26 @@
         output.scrollTop = output.scrollHeight - output.clientHeight;
      }
 
-    function getLastLine(forRepl = true) {
-        var content = output.value;
+     function getREPLRequest() {
+        let content = output.value;
+        if (outputData.length >= content.length) {
+            return '';
+        }
+        let extra = content.substr(outputData.length).trim();
+        if (extra.startsWith(PROMPT)) {
+            extra = extra.substr(PROMPT.length);
+        } else if (extra.startsWith(PROMPT_)) {
+            extra = extra.substr(PROMPT_.length);
+        }
+        extra = extra.trim();
+        return extra;
+    }
+
+    function getLastLine(forRepl = false) {
+        let content = output.value;
         let lines = content.split('\n');
         let lineNr = forRepl ? lines.length - 2 : lines.length - 1;
-        var lastLine = lines[lineNr];
+        let lastLine = lines[lineNr];
         if (lastLine.startsWith(PROMPT)) {
             lastLine = lastLine.substr(PROMPT.length);
         } else if (lastLine.startsWith(PROMPT.trim())) {
@@ -82,7 +98,7 @@
             currRunCmd++;
             //entry.value = cmd;
         } else {
-            cmd = getLastLine();
+            cmd = getREPLRequest();
 
             if (cmd !== '') {
                 history.push(cmd);
@@ -94,6 +110,7 @@
         arrowMode = false;
         //outputData = PROMPT + '<font color="aqua">' + cmd + '</font>' + '\n<br>' + outputData;
         outputData += (outputData == '' ? '' : '\n') + PROMPT + cmd;
+        vscode.setState({ outputData: outputData });
         if (!running && cmd === '') {
             resetLastLine();
             return;            
@@ -129,6 +146,10 @@
         }
         if (active === 'btnRun') {
             startRunning();
+            return;
+        }
+        if (active === 'btnHistory') {
+            vscode.postMessage({command: 'show_history', text: ''});
             return;
         }
         //let x = event.focus;
@@ -175,7 +196,6 @@
             let wholeLen = output.value.length;
             let lineLen  = lastLine.length;
             let delta = (wholeLen - output.selectionEnd - lineLen + 1);
-            //vscode.postMessage({command: 'info', text: key + ':' + lastLine + '_' 
             //  + output.selectionStart + '_' + wholeLen + '_' + lineLen + ':' + '->' + delta});
             if (lineLen == 0) {
                 resetLastLine();
@@ -211,7 +231,7 @@
             return;
         }
 
-        if (key !== 'ArrowDown' && key !== 'ArrowUp') {
+        /*if (key !== 'ArrowDown' && key !== 'ArrowUp') {
             //var cmd = entry.value;
             //display.innerHTML = PROMPT + cmd + '\n<br>' + outputData;
             arrowMode = false;
@@ -238,11 +258,10 @@
         //for (let i = 0; i < history.length; i++) {
         //    msg += history[i] + '|';
         //}
-        //vscode.postMessage({command: 'info', text: key + 'D:' + prev +','+ prev2 +','+current + ',' +
         //   history.length + '->' + cmd + ' '+ arrowMode + ' ' + msg});
         arrowMode = true;
         gotoBottom();
-        setCursorEnd();
+        setCursorEnd();*/
 
         //display.innerHTML = PROMPT + cmd + '\n<br>' + outputData;
     });
@@ -280,7 +299,7 @@
             return;
         }
         if (key === 'ArrowDown' || key === 'ArrowUp') {
-            setCursorEnd();
+            //setCursorEnd();
             return;
         }
         if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'Backspace') {
@@ -300,10 +319,9 @@
         }    
     });
 
-    /*setInterval(() => {
-        //vscode.setState({ count: currentCount });
-        state++;
-    }, 1000);*/
+    setInterval(() => {
+        vscode.setState({ outputData: outputData });
+    }, 1000);
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
@@ -311,6 +329,7 @@
         switch (message.command) {
             case 'repl_response':
                 outputData += '\n' + message.text;
+                vscode.setState({ outputData: outputData });
                 resetLastLine();
                 gotoBottom();
                 //var color = message.text.startsWith('Exception thrown') ? 'red' : 'lime';

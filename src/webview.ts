@@ -1,23 +1,61 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
+import { CscsRuntime } from './cscsRuntime';
+//import { InitializedEvent } from 'vscode-debugadapter';
 
+export class REPLSerializer implements vscode.WebviewPanelSerializer {
+	static connectType = 'sockets';
+	static host = '127.0.0.1';
+	static port = 13337;
+	static initRuntime: (cscsRuntime : CscsRuntime) => void;
+	
+	async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+		//console.log(`Got state: ${state}`);
+		MainPanel.revive(webviewPanel);
+		REPLSerializer.init();
+	}
+
+	public static init() {
+		if (REPLSerializer.initRuntime !== undefined && MainPanel.currentPanel !== undefined) {
+			MainPanel.currentPanel.on('onRepl', (code : string) => {
+				let cscsRuntime   = CscsRuntime.getNewInstance(true);
+				REPLSerializer.initRuntime(cscsRuntime);
+				cscsRuntime.startRepl(REPLSerializer.connectType, REPLSerializer.host, REPLSerializer.port);
+				MainPanel.init = false;
+				let cmdSent = cscsRuntime.sendRepl(code);
+				MainPanel.addHistory(cmdSent);
+				if (cmdSent === '' && MainPanel.currentPanel !== undefined) {
+					MainPanel.currentPanel.sendReplResponse('');
+				}
+			});
+		}	
+	}
+
+	public constructor(	connectType, host, port,
+			initFunction: (cscsRuntime : CscsRuntime) => void) {		
+		REPLSerializer.connectType = connectType;
+		REPLSerializer.host        = host;
+		REPLSerializer.port        = port;
+		REPLSerializer.initRuntime = initFunction;
+	}
+}
 
 export class MainPanel  extends EventEmitter {
 
 	public static currentPanel: MainPanel | undefined;
-
 	public static readonly viewType = 'cscs.repl';
+	public static extensionPath: string;
+	public static status = '';
+	public static init   = true;
+	private static cmdHistory    = new Array<string>();
+	private static historyLoaded = false;
 
 	private readonly _panel: vscode.WebviewPanel;
-	private readonly _extensionPath: string;
 	private _disposables: vscode.Disposable[] = [];
 
-	private _cmdHistory    = new Array<string>();
-
-	private _historyLoaded = false;
-
 	public static createOrShow(extensionPath: string) : MainPanel {
+		MainPanel.setPath(extensionPath);
 		const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
 		if (MainPanel.currentPanel) {
@@ -32,26 +70,32 @@ export class MainPanel  extends EventEmitter {
 			]
 		});
 
-		MainPanel.currentPanel = new MainPanel(panel, extensionPath);
+		MainPanel.currentPanel = new MainPanel(panel);
 		return MainPanel.currentPanel;
 	}
 
-	public static revive(panel: vscode.WebviewPanel, extensionPath: string) {
-		MainPanel.currentPanel = new MainPanel(panel, extensionPath);
+	public static setPath(extensionPath: string) {
+		MainPanel.extensionPath = extensionPath;
 	}
 
-	public constructor(	panel: vscode.WebviewPanel, extensionPath: string) {
+	public static revive(panel: vscode.WebviewPanel) {
+		MainPanel.currentPanel = MainPanel.createOrShow(MainPanel.extensionPath);
+		MainPanel.currentPanel.update();
+	}
+
+	public constructor(	panel: vscode.WebviewPanel) {
 		super();
 		this._panel = panel;
-		this._extensionPath = extensionPath;
 
-		this._update();
+		this.update();
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
+		console.info("New WebView. ExtensionPath: " + MainPanel.extensionPath);
+
 		this._panel.onDidChangeViewState(e => {
 			if (this._panel.visible) {
-				this._update()
+				this.update()
 			}
 		}, null, this._disposables);
 
@@ -77,18 +121,24 @@ export class MainPanel  extends EventEmitter {
 					return;
 				case 'repl':
 					this.sendEvent('onRepl', message.text);
-					/*if (this._cmdHistory.length > 0 &&
-						this._cmdHistory[this._cmdHistory.length-1] === message.text) {
-							return;
-						}*/
-					if (this._historyLoaded && this._cmdHistory.find(message.text) !== undefined) {
-						return;
-					}
-					this._historyLoaded = false;
-					this._cmdHistory.push(message.text)
 					return;
 			}
 		}, null, this._disposables);
+	}
+
+	public static addHistory(cmd : string) {
+		if (cmd === '') {
+			return;
+		}
+		if (this.cmdHistory.length > 0 &&
+			this.cmdHistory[this.cmdHistory.length-1] === cmd) {
+			return;
+		}
+		if (this.historyLoaded && this.cmdHistory.indexOf(cmd) >= 0) {
+			return;
+		}
+		this.historyLoaded = false;
+		this.cmdHistory.push(cmd);
 	}
 
 	private showDialog() {
@@ -97,7 +147,7 @@ export class MainPanel  extends EventEmitter {
 			placeHolder: 'CSCS Command History'
 		}
 
-		vscode.window.showQuickPick(this._cmdHistory, options).then(value => {
+		vscode.window.showQuickPick(MainPanel.cmdHistory, options).then(value => {
 			if (value !== undefined) {
 				//vscode.window.showInformationMessage(value);
 				this._panel.webview.postMessage({ command: 'request', text: value });
@@ -125,23 +175,23 @@ export class MainPanel  extends EventEmitter {
 					let data = fs.readFileSync(pathname, '');
 					let msg = data.toString();
 
-					this._cmdHistory    = new Array<string>();
+					MainPanel.cmdHistory    = new Array<string>();
 					let lines = msg.split('\n');
 					for (let i = 0; i < lines.length; i++) {    
 						let line = lines[i].trim();
 						if (line === '') {
 							continue;
 						}
-						this._cmdHistory.push(line);
+						MainPanel.cmdHistory.push(line);
 					}
 	
 					this._panel.webview.postMessage({ command: 'load', text: msg, filename: pathname });
-					this._historyLoaded = true;
+					MainPanel.historyLoaded = true;
 				}
 		});
 	}
 	private saveFile() {
-		if (this._cmdHistory.length === 0) {
+		if (MainPanel.cmdHistory.length === 0) {
 			vscode.window.showErrorMessage('There is no history to save');
 			return;
 		}
@@ -163,8 +213,8 @@ export class MainPanel  extends EventEmitter {
 					let pathname = path.resolve(filename.fsPath);
 					fs.writeFileSync(pathname, '');
 
-					for (let i = 0; i < this._cmdHistory.length; i++) {
-						let line = this._cmdHistory[i] + '\n';
+					for (let i = 0; i < MainPanel.cmdHistory.length; i++) {
+						let line = MainPanel.cmdHistory[i] + '\n';
 						fs.appendFileSync(pathname, line, function (err) {
 							if (err) {
 								throw err;
@@ -184,22 +234,8 @@ export class MainPanel  extends EventEmitter {
 		});
 	}
 
-	public sendRepl(data: string) {
+	public sendReplResponse(data: string) {
 		this._panel.webview.postMessage({ command: 'repl_response', text: data });
-		/*let lines = data.split('\\n');
-		if (lines.length === 1) {
-			lines = data.split('\n');
-		}
-		for (let i = 0; i < lines.length; i++) {
-			let line = lines[i].trim();
-			if (i === 0 && line.startsWith("repl")) {
-				continue;
-			}
-			if (line === "" && i === lines.length - 1) {
-				break;
-			}
-			this._panel.webview.postMessage({ command: 'repl', text: line });
-		}*/
 	}
 
 	public dispose() {
@@ -214,18 +250,19 @@ export class MainPanel  extends EventEmitter {
 		}
 	}
 
-	private _update() {
+	public update() {
 		this._panel.title = "CSCS REPL";
-		this._panel.webview.html = this._getHtmlForWebview();
+		this._panel.webview.html = MainPanel.getHtmlForWebview();
 	}
 
-	private _getHtmlForWebview() {
+	public static getHtmlForWebview() {
 
-		const scriptPathOnDisk = vscode.Uri.file(path.join(this._extensionPath, 'media', 'main.js'));
+		const scriptPathOnDisk = vscode.Uri.file(path.join(MainPanel.extensionPath, 'media', 'main.js'));
 		const scriptUri = scriptPathOnDisk.with({ scheme: 'vscode-resource' });
 
 		// Use a nonce to whitelist which scripts can be run
 		const nonce = getNonce();
+		const connStatus = MainPanel.status;
 
 		return `<!DOCTYPE html>
             <html lang="en">
@@ -243,17 +280,18 @@ export class MainPanel  extends EventEmitter {
 			<h4 id="tips">
 			<table border="0">
 			<tr>
-			    <td><font color="aqua"><span><b>&#8593;</b></span></font> Previous Command &nbsp; &nbsp;</td>
-			    <td><font color="aqua"><span><b>&#8595;</b></span></font> Next Command &nbsp; &nbsp;</td>
+			<!--<td><font color="aqua"><span><b>&#8593;</b></span></font> Previous Command &nbsp; &nbsp;</td>
+				<td><font color="aqua"><span><b>&#8595;</b></span></font> Next Command &nbsp; &nbsp;</td>
+			-->
 			    <td><font color="aqua"><b>&lt;ESC&gt;</b></font> Clear Line &nbsp; &nbsp;</td>
 			    <td><font color="aqua"><b>&lt;ENTER&gt;</b></font> Evaluate</td>
+				<td><font color="aqua"><b>&#8984;H (&#8963;H)</b></font> History &nbsp; &nbsp;</td>
 			</tr>
 			<tr>
 				<td><font color="aqua"><b>&#8984;L (&#8963;L)</b></font> Load Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;S (&#8963;S)</b></font> Save Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;X (&#8963;X)</b></font> Clear Screen &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;U (&#8963;U)</b></font> Run Loaded &nbsp; &nbsp;</td>
-				<td><font color="aqua"><b>&#8984;H (&#8963;H)</b></font> History &nbsp; &nbsp;</td>
 			</tr>
 		   </table>
 			</h4>
@@ -264,9 +302,11 @@ export class MainPanel  extends EventEmitter {
 				<input id="btnLoad" type="button" value="Load Session" />
 				<input id="btnSave" type="button" value="Save Session" />
 				<input id="btnRun"  type="button" value="Run Loaded"   />
-
-                <br><br><hr>
-				<textarea tag = "output" id="output" name="output_field" rows="40" cols="130">REPL> </textarea>
+				<input id="btnHistory"  type="button" value="History"   />
+				<!--<div id='status' align='center' ><font color="green">${connStatus}</font></div>
+				-->
+                <hr>
+				<textarea tag = "output" id="output" name="output_field" rows="40" cols="120">REPL> </textarea>
 				<div id='display' align='left' style="overflow:auto;height:400px;">
 				</div>
 
