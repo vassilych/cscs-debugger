@@ -27,6 +27,9 @@
     var running           = false;
     var currRunCmd        = 0;
     var arrowMode         = false;
+
+    var lastCommand       = '';
+    var lastCmdIndex      = -1;
     //display.innerHTML = PROMPT;
 
     function gotoBottom() {
@@ -61,6 +64,10 @@
         lastLine = lastLine.trim();
         return lastLine;
     }
+    function isLastLine() {
+        let topEnd = outputData.length;
+        return output.selectionStart > topEnd + PROMPT.length + 1;
+    }
 
     function setCursorEnd() {
         let wholeLen = output.value.length;
@@ -68,11 +75,14 @@
         output.selectionEnd = output.selectionStart;
     }
 
-    function isLastLine() {
-        let topEnd = outputData.length;
-        return output.selectionStart > topEnd + PROMPT.length + 1;
+    function resetArrowMode() {
+        if (arrowMode) {
+            vscode.postMessage({command: 'info', text: 'resetArrowMode [' + lastCmdIndex + ']'});
+        }
+        lastCmdIndex = -1;
+        lastCommand  = '';
+        arrowMode    = false;
     }
-
     function resetLastLine(cmd = '') {
         output.value = (outputData == '' ? '' : outputData + '\n') + PROMPT + cmd;
         //vscode.postMessage({command: 'info', text: 'resetLastLine [' + cmd + ']'});
@@ -99,15 +109,11 @@
             //entry.value = cmd;
         } else {
             cmd = getREPLRequest();
-
-            if (cmd !== '') {
-                history.push(cmd);
-            }
             running = false;
             //entry.value = "";
         }
 
-        arrowMode = false;
+        resetArrowMode();
         //outputData = PROMPT + '<font color="aqua">' + cmd + '</font>' + '\n<br>' + outputData;
         outputData += (outputData == '' ? '' : '\n') + PROMPT + cmd;
         vscode.setState({ outputData: outputData });
@@ -152,25 +158,22 @@
             vscode.postMessage({command: 'show_history', text: ''});
             return;
         }
-        //let x = event.focus;
     });
     document.addEventListener('keydown', function (event) {
         var active = document.activeElement.id;
         var key = event.key || event.keyCode;
 
-        //if (active !== 'entry') {
-        if (key === 'h' && (event.metaKey || event.ctrlKey)) {
-            //alert("line1");
-            vscode.postMessage({command: 'show_history', text: ''});
-            return;
+        if (event.metaKey && key !== 'Meta') {
+            vscode.postMessage({command: 'info', text: key + ' Meta:' + event.metaKey + ' Ctrl:' + event.ctrlKey});
         }
+        //if (active !== 'entry') {
         if (active !== 'output') {
             return;
         }
-
-        if (key === 'x' && (event.metaKey || event.ctrlKey)) {
-            outputData = '';
-            output.value = PROMPT;
+    
+        if (key === 'h' && (event.metaKey || event.ctrlKey)) {
+            //alert("line1");
+            vscode.postMessage({command: 'show_history', text: ''});
             return;
         }
         if (key === 'l' && (event.metaKey || event.ctrlKey)) {
@@ -181,14 +184,13 @@
             vscode.postMessage({command: 'save', text: ''});
             return;
         }
-        if (key === 'u' && (event.metaKey || event.ctrlKey)) {
-            startRunning();
+        /*if (key === 'x' && (event.metaKey || event.ctrlKey)) {
+            outputData = '';
+            output.value = PROMPT;
             return;
         }
-        if (key === 'c' && event.ctrlKey) {
-            let cmd = getLastLine(false);
-            outputData += (outputData == '' ? '' : '\n') + PROMPT + cmd + '⌃C';
-            resetLastLine();
+        if (key === 'u' && (event.metaKey || event.ctrlKey)) {
+            startRunning();
             return;
         }
         if (key === 'ArrowLeft') {
@@ -229,12 +231,12 @@
         if (key === 'Home') {
             setCursorEnd();
             return;
-        }
+        }*/
 
-        /*if (key !== 'ArrowDown' && key !== 'ArrowUp') {
+        if (key !== 'ArrowDown' && key !== 'ArrowUp' || (!event.metaKey && !event.ctrlKey)) {
             //var cmd = entry.value;
             //display.innerHTML = PROMPT + cmd + '\n<br>' + outputData;
-            arrowMode = false;
+            //resetArrowMode();
             return;
         }
 
@@ -254,6 +256,12 @@
             resetLastLine(cmd);
         }
 
+        vscode.postMessage({command: 'info', text: key + ' Cmd: ' + cmd + '(' + current +
+                                     ') last:  ' + lastCommand + '(' + lastCmdIndex + ')'});
+
+        lastCmdIndex = current;
+        lastCommand  = cmd;
+
         //let msg = '';
         //for (let i = 0; i < history.length; i++) {
         //    msg += history[i] + '|';
@@ -261,7 +269,7 @@
         //   history.length + '->' + cmd + ' '+ arrowMode + ' ' + msg});
         arrowMode = true;
         gotoBottom();
-        setCursorEnd();*/
+        setCursorEnd();
 
         //display.innerHTML = PROMPT + cmd + '\n<br>' + outputData;
     });
@@ -282,8 +290,8 @@
             //entry.value = '';
             //display.innerHTML = PROMPT + '\n<br>' + outputData;
             resetLastLine();
-            current = history.length - 1;
-            arrowMode = false;
+            //current = history.length - 1;
+            resetArrowMode();
             return;
         }
         if (key === 'Enter') {
@@ -291,7 +299,7 @@
             sendReplCommand();
             return;
         }
-        if (key === 'Home') {
+        /*if (key === 'Home') {
             setCursorEnd();
             let lastLine = getLastLine(false);
             output.selectionStart -= lastLine.length;
@@ -316,7 +324,7 @@
                 gotoBottom();
                 setCursorEnd();
             }
-        }    
+        }*/
     });
 
     setInterval(() => {
@@ -357,19 +365,18 @@
                     history.push(line);
                     loaded.push(line);
                 }
-                arrowMode = running = false;
-                current = 0;
-                if (history.length > 0) {
-                    //entry.value = history[current];
-                    //display.innerHTML = PROMPT + entry.value + '\n<br>' + outputData;
-                    //outputData += (outputData == '' ? '' : '\n') + PROMPT + history[current];
-                }
+                running = false;
+                resetArrowMode();
                 vscode.postMessage({command: 'info', text: 'Loaded ' + loaded.length + " commands from " + message.filename});
                 break;
-            case 'request':
-                arrowMode = running = false;
+            case 'request': // Comes if user chooses a command from History
+                running = false;
+                resetArrowMode();
                 resetLastLine(message.text + '\n');
                 sendReplCommand();
+                break;
+            case 'history':
+                history = message.history;
                 break;
         }
     });

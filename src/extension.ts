@@ -138,8 +138,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 		let cscsRuntime   = CscsRuntime.getNewInstance(true);
 		initRuntime(cscsRuntime);
-		cscsRuntime.startRepl(connectType, host, port);	
-		cscsRuntime.sendRepl(code);
+		try {
+			cscsRuntime.startRepl(connectType, host, port);	
+			cscsRuntime.sendRepl(code);
+		} catch (err) {
+			vscode.window.showErrorMessage('REPL: ' + err);
+		}
 	});
 	context.subscriptions.push(disposable);
 

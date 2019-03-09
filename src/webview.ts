@@ -23,10 +23,17 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 				REPLSerializer.initRuntime(cscsRuntime);
 				cscsRuntime.startRepl(REPLSerializer.connectType, REPLSerializer.host, REPLSerializer.port);
 				MainPanel.init = false;
-				let cmdSent = cscsRuntime.sendRepl(code);
-				MainPanel.addHistory(cmdSent);
-				if (cmdSent === '' && MainPanel.currentPanel !== undefined) {
-					MainPanel.currentPanel.sendReplResponse('');
+				
+				try {
+					let cmdSent = cscsRuntime.sendRepl(code);
+					MainPanel.addHistory(cmdSent);
+					if (cmdSent.length === 0 && MainPanel.currentPanel !== undefined) {
+						MainPanel.currentPanel.sendReplResponse('');
+					}
+				} catch (err) {
+					if (MainPanel.currentPanel !== undefined) {
+						MainPanel.currentPanel.sendReplResponse(err);
+					}
 				}
 			});
 		}	
@@ -126,7 +133,16 @@ export class MainPanel  extends EventEmitter {
 		}, null, this._disposables);
 	}
 
-	public static addHistory(cmd : string) {
+	public static addHistory(commands : Array<string>) {
+		for(let i = 0; i < commands.length; i++) {		
+			this.addHistoryCommand(commands[i]);
+		}
+		if (MainPanel.currentPanel !== undefined) {
+			MainPanel.currentPanel._panel.webview.postMessage({ command: 'history', history: this.cmdHistory });
+		}
+	}
+
+	public static addHistoryCommand(cmd : string) {
 		if (cmd === '') {
 			return;
 		}

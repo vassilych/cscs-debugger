@@ -6,6 +6,7 @@
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { DebugProtocol } from 'vscode-debugprotocol';
+
 //import { CscsDebugSession } from './cscsDebug';
 //import * as vscode from 'vscode';
 //import { OutputChannel, window } from 'vscode';
@@ -171,14 +172,49 @@ export class CscsRuntime extends EventEmitter {
 		//this.printCSCSOutput('StartDebug ' + host + ":" + port + "(" + this._instanceId + ")");
 	}
 
-	splitREPL(repl: string)
+	splitREPL(repl: string) : Array<string>
 	{
-
-
+		let commands = new Array<string>();
+		let current  = '';
+		let inCurly  = false;
+		let level    = 0;
 		
+		for (let i = 0; i < repl.length; i++) {
+			let ch = repl[i];
+			if (ch === ' ' && current.endsWith(' ')) {
+				continue;
+			}
+			current += ch;
+			let completed = ch === ';' && !inCurly;
+			if (ch === '{') {
+				inCurly = true;
+				level++;
+			} else if (ch === '}') {
+				level--;
+				inCurly = level > 0;
+				completed = !inCurly;	
+			}
+			if (completed) {
+				current = current.trim();
+				if (current !== '') {
+					commands.push(current);
+					current = '';
+				}
+			}
+		}
+		current = current.trim();
+		if (current !== '') {
+			commands.push(current);
+		}
+
+		if (level !== 0) {
+			throw "Unmatched curly braces: " + level;
+		}
+
+		return commands;
 	}
 
-	public sendRepl(repl : string) : string
+	public sendRepl(repl : string) : Array<string>
 	{
 		let start = 0;
 		let end   = -1;
@@ -199,10 +235,13 @@ export class CscsRuntime extends EventEmitter {
 		}
 
 		let cmd = filtered.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
+		let commands = this.splitREPL(cmd);
+
 		if (cmd !== '') {
 			this.sendToServer('repl', cmd);
 		}
-		return cmd;
+
+		return commands;
 	}
 
 	public connectToDebugger() : void {
