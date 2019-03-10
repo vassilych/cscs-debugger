@@ -117,6 +117,12 @@ export class MainPanel  extends EventEmitter {
 				case 'error':
 					vscode.window.showErrorMessage(message.text);
 					return;
+				case 'get_clipboard':
+					this.sendClipboard();
+					return;
+				case 'write_clipboard':
+					this.copyToClipboard(message.text);
+					return;
 				case 'save':
 					this.saveFile();
 					return;
@@ -254,6 +260,16 @@ export class MainPanel  extends EventEmitter {
 		this._panel.webview.postMessage({ command: 'repl_response', text: data });
 	}
 
+	sendClipboard() {
+		vscode.env.clipboard.readText().then((text)=>{
+			this._panel.webview.postMessage({ command: 'clipboard_content', text: text });
+		})
+	}
+
+	copyToClipboard(text: string) {
+		vscode.env.clipboard.writeText(text);
+	}
+
 	public dispose() {
 		MainPanel.currentPanel = undefined;
 		this._panel.dispose();
@@ -296,29 +312,32 @@ export class MainPanel  extends EventEmitter {
 			<h4 id="tips">
 			<table border="0">
 			<tr>
-			<!--<td><font color="aqua"><span><b>&#8593;</b></span></font> Previous Command &nbsp; &nbsp;</td>
-				<td><font color="aqua"><span><b>&#8595;</b></span></font> Next Command &nbsp; &nbsp;</td>
-			-->
-			    <td><font color="aqua"><b>&lt;ESC&gt;</b></font> Clear Line &nbsp; &nbsp;</td>
-			    <td><font color="aqua"><b>&lt;ENTER&gt;</b></font> Evaluate</td>
-				<td><font color="aqua"><b>&#8984;H (&#8963;H)</b></font> History &nbsp; &nbsp;</td>
+			    <td><font color="aqua"><span><b>&#8984;-I</b></span></font> Previous Command &nbsp; &nbsp;</td>
+				<td><font color="aqua"><span><b>&#8984;-K</b></span></font> Next Command &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&lt;ENTER&gt;</b></font> Evaluate</td>
 			</tr>
 			<tr>
-				<td><font color="aqua"><b>&#8984;L (&#8963;L)</b></font> Load Session &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&lt;ESC&gt;</b></font> Clear Line &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&#8984;-H (&#8963;H)</b></font> History &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&#8984;-M (&#8963;M)</b></font> Clear History &nbsp; &nbsp;</td>
+			<!--<td><font color="aqua"><b>&#8984;L (&#8963;L)</b></font> Load Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;S (&#8963;S)</b></font> Save Session &nbsp; &nbsp;</td>
-				<td><font color="aqua"><b>&#8984;X (&#8963;X)</b></font> Clear Screen &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;U (&#8963;U)</b></font> Run Loaded &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&#8984;X (&#8963;X)</b></font> Clear Screen &nbsp; &nbsp;</td>
+			-->
 			</tr>
 		   </table>
 			</h4>
 				<!--<input tag = "entry" id="entry" name="entry_field" size="80" type="text"
 					onkeypress="return itemKeyDown(event)" />-->
 
-				<input id="btnClear" type="button" value="Clear" />
-				<input id="btnLoad" type="button" value="Load Session" />
-				<input id="btnSave" type="button" value="Save Session" />
-				<input id="btnRun"  type="button" value="Run Loaded"   />
-				<input id="btnHistory"  type="button" value="History"   />
+				<input id="btnClear"   type="button" value="Clear Screen" />
+				<input id="btnLoad"    type="button" value="Load Session" />
+				<input id="btnSave"    type="button" value="Save Session" />
+				<input id="btnRun"     type="button" value="Run Loaded"   />
+				<input id="btnHistory" type="button" value="History"   />
+				<input id="btnCopy"    type="button" value="Copy"   />
+				<input id="btnPaste"   type="button" value="Paste"   />
 				<!--<div id='status' align='center' ><font color="green">${connStatus}</font></div>
 				-->
                 <hr>

@@ -264,7 +264,7 @@ export class CscsRuntime extends EventEmitter {
 				  this.printInfoMsg('CSCS: Connected to ' + this._host + ":" + this._port +
 					'. Check Output CSCS Window for REPL and Debug Console for Debugger Messages');
 				}
-				this.sendEvent('onStatusChange', 'Connected to ' + this._host + ":" + this._port);
+				this.sendEvent('onStatusChange', 'CSCS: Connected to ' + this._host + ":" + this._port);
 				CscsRuntime._firstRun = false;
 				this._init = false;
 
