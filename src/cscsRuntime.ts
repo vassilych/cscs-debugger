@@ -177,7 +177,10 @@ export class CscsRuntime extends EventEmitter {
 		let commands = new Array<string>();
 		let current  = '';
 		let inCurly  = false;
-		let level    = 0;
+		let levelCurly       = 0;
+		let levelBrackets    = 0;
+		let levelParentheses = 0;
+		let levelQuotes      = 0;
 		
 		for (let i = 0; i < repl.length; i++) {
 			let ch = repl[i];
@@ -186,14 +189,36 @@ export class CscsRuntime extends EventEmitter {
 			}
 			current += ch;
 			let completed = ch === ';' && !inCurly;
-			if (ch === '{') {
-				inCurly = true;
-				level++;
-			} else if (ch === '}') {
-				level--;
-				inCurly = level > 0;
-				completed = !inCurly;	
+
+			switch (ch) {
+				case '{':
+					inCurly = true;
+					levelCurly++;
+					break;
+				case '}':
+					levelCurly--;
+					inCurly = levelCurly > 0;
+					completed = !inCurly;	
+					break;
+				case '[':
+					levelBrackets++;
+					continue;
+				case ']':
+					levelBrackets--;
+					continue;
+				case '(':
+					levelParentheses++;
+					continue;
+				case ')':
+					levelParentheses--;
+					continue;
+				case '"':
+					if (i === 0 || repl[i-1] !== '\\') {
+						levelQuotes++;
+					}
+					continue;
 			}
+
 			if (completed) {
 				current = current.trim();
 				if (current !== '') {
@@ -202,13 +227,20 @@ export class CscsRuntime extends EventEmitter {
 				}
 			}
 		}
+
 		current = current.trim();
 		if (current !== '') {
 			commands.push(current);
 		}
 
-		if (level !== 0) {
-			throw "Unmatched curly braces: " + level;
+		if (levelCurly !== 0) {
+			throw "Unmatched curly braces: " + levelCurly;
+		} else if (levelBrackets !== 0) {
+			throw "Unmatched square brackets: " + levelBrackets;
+		} else if (levelParentheses !== 0) {
+			throw "Unmatched parentheses: " + levelParentheses;
+		} else if (levelQuotes % 2 !== 0) {
+			throw "Unmatched quotes";
 		}
 
 		return commands;

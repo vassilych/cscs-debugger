@@ -32,7 +32,7 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 					}
 				} catch (err) {
 					if (MainPanel.currentPanel !== undefined) {
-						MainPanel.currentPanel.sendReplResponse(err);
+						MainPanel.currentPanel.sendReplResponse("Error: " + err);
 					}
 				}
 			});
@@ -56,7 +56,7 @@ export class MainPanel  extends EventEmitter {
 	public static status = '';
 	public static init   = true;
 	private static cmdHistory    = new Array<string>();
-	private static historyLoaded = false;
+	//private static historyLoaded = false;
 
 	private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
@@ -132,6 +132,9 @@ export class MainPanel  extends EventEmitter {
 				case 'show_history':
 					this.showDialog();
 					return;
+				case 'clear_history':
+					MainPanel.cmdHistory.length = 0;
+					return;
 				case 'repl':
 					this.sendEvent('onRepl', message.text);
 					return;
@@ -156,10 +159,10 @@ export class MainPanel  extends EventEmitter {
 			this.cmdHistory[this.cmdHistory.length-1] === cmd) {
 			return;
 		}
-		if (this.historyLoaded && this.cmdHistory.indexOf(cmd) >= 0) {
-			return;
-		}
-		this.historyLoaded = false;
+		//if (this.historyLoaded && this.cmdHistory.indexOf(cmd) >= 0) {
+		//	return;
+		//}
+		//this.historyLoaded = false;
 		this.cmdHistory.push(cmd);
 	}
 
@@ -197,7 +200,7 @@ export class MainPanel  extends EventEmitter {
 					let data = fs.readFileSync(pathname, '');
 					let msg = data.toString();
 
-					MainPanel.cmdHistory    = new Array<string>();
+					MainPanel.cmdHistory.length = 0;
 					let lines = msg.split('\n');
 					for (let i = 0; i < lines.length; i++) {    
 						let line = lines[i].trim();
@@ -208,7 +211,7 @@ export class MainPanel  extends EventEmitter {
 					}
 	
 					this._panel.webview.postMessage({ command: 'load', text: msg, filename: pathname });
-					MainPanel.historyLoaded = true;
+					//MainPanel.historyLoaded = true;
 				}
 		});
 	}
@@ -241,11 +244,11 @@ export class MainPanel  extends EventEmitter {
 							if (err) {
 								throw err;
 							}
-							console.log('Saved!');
+							console.log('Saved file ' + pathname);
 						  });
 					}
 		
-					vscode.window.showInformationMessage('Saved file at ' + pathname);
+					vscode.window.showInformationMessage('Saved file ' + pathname);
 				}
 		});
 	}
@@ -267,7 +270,9 @@ export class MainPanel  extends EventEmitter {
 	}
 
 	copyToClipboard(text: string) {
-		vscode.env.clipboard.writeText(text);
+		vscode.env.clipboard.writeText(text).then((text)=>{
+			this._panel.webview.postMessage({ command: 'copy_completed', text: text });
+		})
 	}
 
 	public dispose() {
@@ -308,7 +313,7 @@ export class MainPanel  extends EventEmitter {
             </head>
             <body>
 			<center>
-			<h3 id="header_name"><b><font color="yellow">CSCS REPL</font></b></h2>
+			<h3 id="header_name"><b><font color="yellow">CSCS REPL</font></b></h3>
 			<h4 id="tips">
 			<table border="0">
 			<tr>
@@ -319,7 +324,7 @@ export class MainPanel  extends EventEmitter {
 			<tr>
 				<td><font color="aqua"><b>&lt;ESC&gt;</b></font> Clear Line &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;-H (&#8963;H)</b></font> History &nbsp; &nbsp;</td>
-				<td><font color="aqua"><b>&#8984;-M (&#8963;M)</b></font> Clear History &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&#8984;-M</b></font> Clear History &nbsp; &nbsp;</td>
 			<!--<td><font color="aqua"><b>&#8984;L (&#8963;L)</b></font> Load Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;S (&#8963;S)</b></font> Save Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;U (&#8963;U)</b></font> Run Loaded &nbsp; &nbsp;</td>

@@ -34,6 +34,7 @@
 
     var lastCommand       = '';
     var lastCmdIndex      = -1;
+    var selectedText      = '';
     //display.innerHTML = PROMPT;
 
     function gotoBottom() {
@@ -74,17 +75,22 @@
         return index;
     }
 
-    function getLastLineContent(forRepl = false) {
-        let lastLine = getLastLine(forRepl);
-        if (lastLine.startsWith(PROMPT_)) {
-            lastLine = lastLine.length > PROMPT_.length ? lastLine.substr(PROMPT_.length) : '';
+    function isCursorLastLine(modifyOutput = false) {
+        let content   = output.value;
+        let lines     = content.split('\n');
+        let prev      = lines[lines.length - 2];
+        let last      = lines[lines.length - 1];
+        let index     = output.value.lastIndexOf(prev);
+        if (output.selectionStart < index) {
+            return false;
         }
-        lastLine = lastLine.trim();
-        //vscode.postMessage({command: 'info', text: 'Content [' + lastLine + ']'});
-        return lastLine;
-    }
-    function isLastLine() {
-        return output.selectionStart >= getLastLineIndex();
+        if (modifyOutput) {
+            let before = output.value.substr(0, index);
+            output.value = before + prev + last + '\n';
+        }
+        //vscode.postMessage({command: 'info', text: 'ind=' + index +',selStart='+output.selectionStart+
+        //  ', prev=['+prev+'], last=['+last+']'});
+        return true;
     }
 
     function resetArrowMode() {
@@ -100,7 +106,7 @@
         let before = lastIndex > 0 ? output.value.substr(0, lastIndex) : '';
         output.value = before + (replResponse ? '' : PROMPT) + cmd;
         if (replResponse) {
-            output.value += '\n' + PROMPT;
+            output.value += '\n' + (running ? '' : PROMPT);
         }
         setCursorEnd();
         //vscode.postMessage({command: 'info', text: 'before [' + before + '] ' + ', cmd=' + cmd + ':' + lastIndex});
@@ -119,13 +125,22 @@
         sendReplCommand();
     }
 
-    function paste(text = '') {
+    function paste(text) {
         var start    = output.selectionStart;
         var end      = output.selectionEnd;
         var before   = output.value.substr(0, start);
-        var after    = output.value.substr(end + 1);
+        var after    = output.value.substr(end);
+        //vscode.postMessage({command: 'info', text: 'PASTE ' + text + ':' + start +','+end});
         output.value = before + text + after;
+        if (isCursorLastLine()) {
+            gotoBottom();
+        }
         output.focus();
+        output.selectionStart = output.selectionEnd = (start + text.length);
+    }
+
+    function copyCompleted(text = '') {
+        output.selectionStart = output.selectionEnd = output.selectionStart;
     }
 
     function getSelection() {
@@ -144,11 +159,16 @@
    
         if (running && currRunCmd < loaded.length) {
             cmd = loaded[currRunCmd];
+            output.value += (output.value.endsWith('\n') ? '' : '\n') + PROMPT + cmd + '\n';
             currRunCmd++;
             //entry.value = cmd;
         } else {
+            if (running) {
+                output.value += PROMPT;
+                running = false;
+                return;
+            }
             cmd = getREPLRequest();
-            running = false;
             //entry.value = "";
         }
 
@@ -165,15 +185,38 @@
         //display.innerHTML = outputData;
         vscode.postMessage({ command: 'repl', text: cmd });
     }
-    //document.addEventListener('mousedown', function (event) { });
     //document.addEventListener('mouseover', function (event) { });
+    document.addEventListener('mousedown', function (event) {
+        var active = document.activeElement.id;
+        if (active !== EDIT_AREA) {
+            return;
+        }
+        var start    = output.selectionStart;
+        var end      = output.selectionEnd;
+        selectedText = output.value.substr(start, end - start);
+        //vscode.postMessage({command: 'info', text: 'DOWN: ' + start +','+end + ':' + selectedText});
+     });
+
     document.addEventListener('auxclick', function (event) {
         var active = document.activeElement.id;
-        var middleButton = event.button == 1;
-        if (middleButton && active === EDIT_AREA) {
-            vscode.postMessage({command: 'get_clipboard', text: ''});
+        if (active !== EDIT_AREA) {
+            return;
         }
+
+        var middleButton = event.button == 1;
+        //vscode.postMessage({command: 'info', text: 'AUX: ' + middleButton + ':' + selectedText});
+        if (!middleButton && selectedText !== '') {
+            var addNewLine = !isCursorLastLine();
+            paste(selectedText + (addNewLine ? '\n' : ''));
+            if (addNewLine) {
+                output.selectionStart = output.selectionEnd = (output.selectionStart - 1);
+            }
+            return;
+        }
+
+        vscode.postMessage({command: 'get_clipboard', text: ''});
     });
+
     document.addEventListener('click', function (event) {
         var active = document.activeElement.id;
 
@@ -207,20 +250,14 @@
     
         if (key === 'h' && (event.metaKey || event.ctrlKey)) {
             vscode.postMessage({command: 'show_history', text: ''});
-            return;
-        }
-        if (key === 'l' && (event.metaKey || event.ctrlKey)) {
+        } else if (key === 'l' && (event.metaKey || event.ctrlKey)) {
             vscode.postMessage({command: 'load', text: ''});
-            return;
-        }
-        if (key === 's' && (event.metaKey || event.ctrlKey)) {
+        } else if (key === 's' && (event.metaKey || event.ctrlKey)) {
             vscode.postMessage({command: 'save', text: ''});
-            return;
-        }
-        if (key === 'm' && (event.metaKey || event.ctrlKey)) {
+        } else if (key === 'm' && (event.metaKey || event.ctrlKey)) {
             history.length = 0;
             loaded.length  = 0;
-            return;
+            vscode.postMessage({command: 'clear_history', text: ''});
         }
         /*if (key === 'x' && (event.metaKey || event.ctrlKey)) {
             outputData = '';
@@ -296,12 +333,12 @@
             resetLastLine();
             //current = history.length - 1;
             resetArrowMode();
-            return;
-        }
-        if (key === 'Enter') {
+        } else if (key === 'Enter') {
             running = false;
-            sendReplCommand();
-            return;
+            let isValid = isCursorLastLine(true);
+            if (isValid) {
+                sendReplCommand();
+            }
         }
     });
 
@@ -319,12 +356,7 @@
                 //outputData = '<font color="' + color + '">' + message.text + '</font>\n<br>' + outputData;
                 //display.innerHTML = PROMPT + '\n<br>' + outputData;
                 //output.textContent += "\nREPL> " + message.text;
-
                 if (running) {
-                    if (currRunCmd >= history.length) {
-                        running = false;
-                        return;
-                    }
                     sendReplCommand();
                 }
                 break;
@@ -356,6 +388,9 @@
                 break;
             case 'clipboard_content':
                 paste(message.text);
+                break;
+            case 'copy_completed':
+                copyCompleted(message.text);
                 break;
         }
     });
