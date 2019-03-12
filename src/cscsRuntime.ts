@@ -172,8 +172,9 @@ export class CscsRuntime extends EventEmitter {
 		//this.printCSCSOutput('StartDebug ' + host + ":" + port + "(" + this._instanceId + ")");
 	}
 
-	splitREPL(repl: string) : Array<string>
+	splitREPL(repl: string) : [string, Array<string>]
 	{
+		let command  = '';
 		let commands = new Array<string>();
 		let current  = '';
 		let inCurly  = false;
@@ -181,46 +182,86 @@ export class CscsRuntime extends EventEmitter {
 		let levelBrackets    = 0;
 		let levelParentheses = 0;
 		let levelQuotes      = 0;
+		let inComments       = false;
+		let simpleComments   = false;
+		let inQuotes         = false;
+		let prev             = '';
+		let prevprev         = '';
 		
 		for (let i = 0; i < repl.length; i++) {
 			let ch = repl[i];
-			if (ch === ' ' && current.endsWith(' ')) {
+			let next = i < repl.length - 1 ? repl[i+1] : '';
+			if (!inQuotes && ch === ' ' && current.endsWith(' ')) {
 				continue;
 			}
-			current += ch;
-			let completed = ch === ';' && !inCurly;
+
+			if (inComments && ((simpleComments && ch !== '\n') ||
+				(!simpleComments && ch !== '*'))) {
+				continue;
+			}
+			let completed = ch === ';' && !inCurly && !inQuotes && !inComments;
 
 			switch (ch) {
+				case '/':
+					if (!inQuotes && (inComments || next === '/' || next === '*')) {
+							inComments = true;
+							simpleComments = simpleComments || next === '/';
+							continue;
+					}
+					break;
+				case '*':
+					if (!inQuotes && (inComments && next === '/')) {
+						i++; // skip next character
+						inComments = false;
+						continue;
+					}
+					break;
+				case '"':
+					if (!inComments) {
+						if (prev !== '\\' || prevprev === '\\')	{
+							inQuotes = !inQuotes;
+						}
+					}
+					break;
+				case '\n':
+					if (simpleComments) {
+						inComments = simpleComments = false;
+					}
+					continue;
 				case '{':
 					inCurly = true;
 					levelCurly++;
 					break;
 				case '}':
-					levelCurly--;
-					inCurly = levelCurly > 0;
-					completed = !inCurly;	
+					if (!inQuotes && !inComments) {
+						levelCurly--;
+						inCurly = levelCurly > 0;
+						completed = !inCurly;	
+					}
 					break;
 				case '[':
 					levelBrackets++;
-					continue;
+					break;
 				case ']':
 					levelBrackets--;
-					continue;
+					break;
 				case '(':
 					levelParentheses++;
-					continue;
+					break;
 				case ')':
 					levelParentheses--;
-					continue;
-				case '"':
-					if (i === 0 || repl[i-1] !== '\\') {
-						levelQuotes++;
-					}
-					continue;
+					break;
 			}
 
+			if (!inComments && ch !== '\n') {
+				command += ch;
+				current += ch;
+			}
+			prevprev = prev;
+			prev = ch;
+
 			if (completed) {
-				current = current.trim();
+				//current = current.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
 				if (current !== '') {
 					commands.push(current);
 					current = '';
@@ -228,7 +269,7 @@ export class CscsRuntime extends EventEmitter {
 			}
 		}
 
-		current = current.trim();
+		//current = current.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
 		if (current !== '') {
 			commands.push(current);
 		}
@@ -243,12 +284,13 @@ export class CscsRuntime extends EventEmitter {
 			throw "Unmatched quotes";
 		}
 
-		return commands;
+		//command = command.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
+		return [command, commands];
 	}
 
 	public sendRepl(repl : string) : Array<string>
 	{
-		let start = 0;
+		/*let start = 0;
 		let end   = -1;
 		let filtered = ''
 		while (true) {
@@ -257,6 +299,7 @@ export class CscsRuntime extends EventEmitter {
 				filtered += repl.substr(end + 1);
 				break;
 			}
+
 			if (start > end + 1) {
 				filtered += repl.substr(end + 1, start - end - 1);
 			}
@@ -266,8 +309,10 @@ export class CscsRuntime extends EventEmitter {
 			}
 		}
 
-		let cmd = filtered.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
-		let commands = this.splitREPL(cmd);
+		let cmd = filtered.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();*/
+		let result = this.splitREPL(repl);
+		let cmd = result[0];
+		let commands =result[1];
 
 		if (cmd !== '') {
 			this.sendToServer('repl', cmd);

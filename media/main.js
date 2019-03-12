@@ -12,19 +12,6 @@
     const DOWN_KEY  = 'k';  
     const UP_KEY    = 'i';  
 
-    const previousState = vscode.getState();
-    let outputData      = previousState ? previousState.outputData : '';
-
-
-    //const entry    = document.getElementById('entry');
-    //const display  = document.getElementById('display');
-
-    //entry.focus();
-    output.focus();
-    let lastCursor        = PROMPT.length;
-    output.selectionStart = lastCursor;
-    output.selectionEnd   = lastCursor;
-
     var history           = new Array;
     var loaded            = new Array;
     var current           = -1;
@@ -35,6 +22,7 @@
     var lastCommand       = '';
     var lastCmdIndex      = -1;
     var selectedText      = '';
+    var id                = 1;
     //display.innerHTML = PROMPT;
 
     function gotoBottom() {
@@ -49,7 +37,19 @@
         output.focus();
     }
 
-     function getREPLRequest() {
+    const prevState = vscode.getState();
+    let outputData  = prevState ? prevState.outputData : PROMPT;
+    output.value    = outputData;
+
+    //vscode.postMessage({command: 'info', text: 'prevState ? ' + (prevState ? '1' : '0')});
+    vscode.postMessage({command: 'request_id', text: ''});
+    if (prevState) {
+        vscode.postMessage({command: 'request_history', text: ''});
+    }
+    gotoBottom();
+    setCursorEnd();
+
+    function getREPLRequest() {
         let content = output.value;
         let index = content.lastIndexOf(PROMPT_);
         if (index < 0) {
@@ -175,7 +175,7 @@
         resetArrowMode();
         //outputData = PROMPT + '<font color="aqua">' + cmd + '</font>' + '\n<br>' + outputData;
         //outputData += (outputData == '' ? '' : '\n') + PROMPT + cmd;
-        //vscode.setState({ outputData: outputData });
+        vscode.setState({ outputData: output.value });
         //vscode.postMessage({ command: 'info', text: 'REPL [' + cmd + '] running:'+ running});
         if (!running && cmd === '') {
             //vscode.postMessage({command: 'info', text: 'Calling reset cmd=' + cmd});
@@ -183,7 +183,7 @@
             return;            
         }
         //display.innerHTML = outputData;
-        vscode.postMessage({ command: 'repl', text: cmd });
+        vscode.postMessage({ command: 'repl', text: cmd, id: id });
     }
     //document.addEventListener('mouseover', function (event) { });
     document.addEventListener('mousedown', function (event) {
@@ -338,12 +338,13 @@
             let isValid = isCursorLastLine(true);
             if (isValid) {
                 sendReplCommand();
+                //vscode.postMessage({command: 'info', text: key + ' SENDING REPL'});
             }
         }
     });
 
     setInterval(() => {
-        vscode.setState({ outputData: outputData });
+        vscode.setState({ outputData: output.value });
     }, 1000);
 
     // Handle messages sent from the extension to the webview
@@ -352,6 +353,7 @@
         switch (message.command) {
             case 'repl_response':
                 resetLastLine(message.text, true);
+                vscode.setState({ outputData: output.value});
                 //var color = message.text.startsWith('Exception thrown') ? 'red' : 'lime';
                 //outputData = '<font color="' + color + '">' + message.text + '</font>\n<br>' + outputData;
                 //display.innerHTML = PROMPT + '\n<br>' + outputData;
@@ -391,6 +393,9 @@
                 break;
             case 'copy_completed':
                 copyCompleted(message.text);
+                break;
+            case 'id':
+                id = message.id;
                 break;
         }
     });

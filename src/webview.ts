@@ -19,6 +19,12 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 	public static init() {
 		if (REPLSerializer.initRuntime !== undefined && MainPanel.currentPanel !== undefined) {
 			MainPanel.currentPanel.on('onRepl', (code : string) => {
+				if ( MainPanel.requestSent ||
+					(MainPanel.currentPanel &&
+					 MainPanel.globalId !== MainPanel.currentPanel.localId)) {
+						return;
+				}
+				MainPanel.requestSent = true;
 				let cscsRuntime   = CscsRuntime.getNewInstance(true);
 				REPLSerializer.initRuntime(cscsRuntime);
 				cscsRuntime.startRepl(REPLSerializer.connectType, REPLSerializer.host, REPLSerializer.port);
@@ -55,11 +61,16 @@ export class MainPanel  extends EventEmitter {
 	public static extensionPath: string;
 	public static status = '';
 	public static init   = true;
-	private static cmdHistory    = new Array<string>();
+	public static globalId = 1;
+	public static requestSent = false;
+
+	private static cmdHistory = new Array<string>();
 	//private static historyLoaded = false;
 
+	public localId = 1;
 	private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
+	
 
 	public static createOrShow(extensionPath: string) : MainPanel {
 		MainPanel.setPath(extensionPath);
@@ -100,11 +111,11 @@ export class MainPanel  extends EventEmitter {
 
 		console.info("New WebView. ExtensionPath: " + MainPanel.extensionPath);
 
-		this._panel.onDidChangeViewState(e => {
-			if (this._panel.visible) {
-				this.update()
-			}
-		}, null, this._disposables);
+		//this._panel.onDidChangeViewState(e => {
+		//	if (this._panel.visible) {
+		//		this.update()
+		//	}
+		//}, null, this._disposables);
 
 		this._panel.webview.onDidReceiveMessage(message => {
 			switch (message.command) {
@@ -135,13 +146,34 @@ export class MainPanel  extends EventEmitter {
 				case 'clear_history':
 					MainPanel.cmdHistory.length = 0;
 					return;
+				case 'request_id':
+					MainPanel.sendId();
+					return;
+				case 'request_history':
+					MainPanel.sendHistory();
+					return;
 				case 'repl':
+					if (MainPanel.globalId !== message.id) {
+						return;
+					}
+					MainPanel.requestSent = false;
 					this.sendEvent('onRepl', message.text);
 					return;
 			}
 		}, null, this._disposables);
 	}
 
+	public static sendId() {
+		if (MainPanel.currentPanel !== undefined) {
+			MainPanel.currentPanel.localId = ++MainPanel.globalId;
+			MainPanel.currentPanel._panel.webview.postMessage({ command: 'id', id: MainPanel.globalId });
+		}
+	}
+	public static sendHistory() {
+		if (MainPanel.currentPanel !== undefined) {
+			MainPanel.currentPanel._panel.webview.postMessage({ command: 'history', history: MainPanel.cmdHistory });
+		}
+	}
 	public static addHistory(commands : Array<string>) {
 		for(let i = 0; i < commands.length; i++) {		
 			this.addHistoryCommand(commands[i]);
