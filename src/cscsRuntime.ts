@@ -417,6 +417,8 @@ export class CscsRuntime extends EventEmitter {
 				if (this._init) {
 					this.printCSCSOutput('Could not connect to ' + this._host + ":" + this._port);
 					this.printErrorMsg('Could not connect to ' + this._host + ":" + this._port);
+					this.sendEvent('onStatusChange', "CSCS: Couldn't connect to " + this._host + ":" + this._port);
+
 				}
 				//console.log('Closed connection to ' + this._host + ":" + this._port + '...');
 				this._connected = false;

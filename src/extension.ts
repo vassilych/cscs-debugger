@@ -156,12 +156,6 @@ export function deactivate() {
 	// nothing to do
 }
 
-export class Subscriber  {
-	async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-		//console.log(`Got state: ${state}`);
-		MainPanel.revive(webviewPanel);
-	}
-}
 class CscsConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	private _server?: Net.Server;

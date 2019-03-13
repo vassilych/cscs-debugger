@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
 import { CscsRuntime } from './cscsRuntime';
-//import { InitializedEvent } from 'vscode-debugadapter';
+
 
 export class REPLSerializer implements vscode.WebviewPanelSerializer {
 	static connectType = 'sockets';
@@ -72,7 +72,7 @@ export class MainPanel  extends EventEmitter {
 	private _disposables: vscode.Disposable[] = [];
 	
 
-	public static createOrShow(extensionPath: string) : MainPanel {
+	public static createOrShow(extensionPath: string) {
 		MainPanel.setPath(extensionPath);
 		const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
@@ -97,8 +97,7 @@ export class MainPanel  extends EventEmitter {
 	}
 
 	public static revive(panel: vscode.WebviewPanel) {
-		MainPanel.currentPanel = MainPanel.createOrShow(MainPanel.extensionPath);
-		MainPanel.currentPanel.update();
+		MainPanel.createOrShow(MainPanel.extensionPath);
 	}
 
 	public constructor(	panel: vscode.WebviewPanel) {
@@ -111,11 +110,11 @@ export class MainPanel  extends EventEmitter {
 
 		console.info("New WebView. ExtensionPath: " + MainPanel.extensionPath);
 
-		//this._panel.onDidChangeViewState(e => {
-		//	if (this._panel.visible) {
-		//		this.update()
-		//	}
-		//}, null, this._disposables);
+		this._panel.onDidChangeViewState(e => {
+			if (this._panel.visible) {
+				this.update()
+			}
+		}, null, this._disposables);
 
 		this._panel.webview.onDidReceiveMessage(message => {
 			switch (message.command) {
