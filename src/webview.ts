@@ -5,10 +5,8 @@ import { CscsRuntime } from './cscsRuntime';
 
 
 export class REPLSerializer implements vscode.WebviewPanelSerializer {
-	static connectType = 'sockets';
-	static host = '127.0.0.1';
-	static port = 13337;
 	static initRuntime: (cscsRuntime : CscsRuntime) => void;
+	static getConnectionData: () => [string, string, number];
 	
 	async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
 		//console.log(`Got state: ${state}`);
@@ -26,8 +24,9 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 				}
 				MainPanel.requestSent = true;
 				let cscsRuntime   = CscsRuntime.getNewInstance(true);
+				let [connectType, host, port] = REPLSerializer.getConnectionData();
 				REPLSerializer.initRuntime(cscsRuntime);
-				cscsRuntime.startRepl(REPLSerializer.connectType, REPLSerializer.host, REPLSerializer.port);
+				cscsRuntime.startRepl(connectType, host, port);
 				MainPanel.init = false;
 				
 				try {
@@ -45,12 +44,10 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 		}	
 	}
 
-	public constructor(	connectType, host, port,
+	public constructor(	connectionDetailsFunction: () => [string, string, number],
 			initFunction: (cscsRuntime : CscsRuntime) => void) {		
-		REPLSerializer.connectType = connectType;
-		REPLSerializer.host        = host;
-		REPLSerializer.port        = port;
-		REPLSerializer.initRuntime = initFunction;
+		REPLSerializer.getConnectionData = connectionDetailsFunction;
+		REPLSerializer.initRuntime       = initFunction;
 	}
 }
 

@@ -417,9 +417,9 @@ export class CscsRuntime extends EventEmitter {
 			this._debugger.on('timeout', () => {
 				if (!this._connected) {
 					this.printCSCSOutput("Timeout connecting to " + this._host + ":" + this._port);
-					this.printErrorMsg('Timeout connecting to ' + this._host + ":" + this._port);
+					//this.printErrorMsg('Timeout connecting to ' + this._host + ":" + this._port);
 					//console.log('Timeout connecting to ' + this._host + ":" + this._port + '...');
-					//this._debugger.destroy();
+					this._debugger.destroy();
 				}
   		});
 
@@ -428,7 +428,6 @@ export class CscsRuntime extends EventEmitter {
 					this.printCSCSOutput('Could not connect to ' + this._host + ":" + this._port);
 					this.printErrorMsg('Could not connect to ' + this._host + ":" + this._port);
 					this.sendEvent('onStatusChange', "CSCS: Couldn't connect to " + this._host + ":" + this._port);
-
 				}
 				//console.log('Closed connection to ' + this._host + ":" + this._port + '...');
 				this._connected = false;

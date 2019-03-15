@@ -17,13 +17,15 @@ export function activate(context: vscode.ExtensionContext) {
 	let outputChannel = vscode.window.createOutputChannel('CSCS');
 
 	let init          = true;
-	const config      = vscode.workspace.getConfiguration('cscs');
-	let connectType   = config.get('connectType', 'sockets');
-	let host          = config.get('serverHost', '127.0.0.1');
-	let port          = config.get('serverPort', 13337);
+	const getConnectionData = () : [string, string, number] =>  {
+		const config      = vscode.workspace.getConfiguration('cscs');
+		let connectType   = config.get('connectType', 'sockets');
+		let host          = config.get('serverHost',  '127.0.0.1');
+		let port          = config.get('serverPort',  13337);
+		return [connectType, host, port];
+	};
 
-	//let cmdHistory    = new Array<string>();
-	//let respHistory   = new Array<string>();
+	let [connectType, host, port] = getConnectionData();
 
 	const registeredCommand = () => {
 		let textEditor = vscode.window.activeTextEditor;
@@ -109,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	MainPanel.setPath(context.extensionPath);
-	let serializer = new REPLSerializer(connectType, host, port, initRuntime);
+	let serializer = new REPLSerializer(getConnectionData, initRuntime);
 	vscode.window.registerWebviewPanelSerializer(MainPanel.viewType, serializer);
 
 	let msgRuntime   = CscsRuntime.getInstance(true);
@@ -137,6 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
 		init = false;
 
 		let cscsRuntime   = CscsRuntime.getNewInstance(true);
+		[connectType, host, port] = getConnectionData();
 		initRuntime(cscsRuntime);
 		try {
 			cscsRuntime.startRepl(connectType, host, port);	
@@ -188,16 +191,6 @@ class CscsConfigurationProvider implements vscode.DebugConfigurationProvider {
 		if (textEditor && textEditor.document && textEditor.document.fileName) {
             config.program = textEditor.document.fileName;
 		}
-
-		/*const extConfig       = vscode.workspace.getConfiguration('cscs');
-		config['connectType'] = extConfig.get('connectType', 'sockets');
-		config['serverPort']  = extConfig.get('serverPort', config['serverPort']);
-		config['serverHost']  = '127.0.0.1';
-		if (config.name.toLowerCase().indexOf("remote") >= 0)
-		{
-			config['serverHost']  = extConfig.get('serverHost', config['serverHost']);
-			config['serverBase']  = extConfig.get('serverBase');
-		}*/
 
 		return config;
 	}
