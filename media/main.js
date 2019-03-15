@@ -86,10 +86,15 @@
         }
         if (modifyOutput) {
             let before = output.value.substr(0, index);
-            output.value = before + prev + last + '\n';
-        }
-        //vscode.postMessage({command: 'info', text: 'ind=' + index +',selStart='+output.selectionStart+
-        //  ', prev=['+prev+'], last=['+last+']'});
+            let cmd = prev + last;
+            output.value = before + cmd + '\n';
+            //vscode.postMessage({command: 'info', text: 'ind=' + index +',selStart='+output.selectionStart+
+            //  ', prev=['+prev+'], last=['+last+']'});
+            if (!prev.startsWith(PROMPT_)) {
+                output.value += PROMPT;
+                return false;
+            }
+    }
         return true;
     }
 

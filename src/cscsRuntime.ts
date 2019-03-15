@@ -229,8 +229,10 @@ export class CscsRuntime extends EventEmitter {
 					}
 					continue;
 				case '{':
-					inCurly = true;
-					levelCurly++;
+					if (!inQuotes && !inComments) {
+						inCurly = true;
+						levelCurly++;
+					}
 					break;
 				case '}':
 					if (!inQuotes && !inComments) {
@@ -240,16 +242,24 @@ export class CscsRuntime extends EventEmitter {
 					}
 					break;
 				case '[':
-					levelBrackets++;
+					if (!inQuotes && !inComments) {
+						levelBrackets++;
+					}
 					break;
 				case ']':
-					levelBrackets--;
+					if (!inQuotes && !inComments) {
+						levelBrackets--;
+					}
 					break;
 				case '(':
-					levelParentheses++;
+					if (!inQuotes && !inComments) {
+						levelParentheses++;
+					}
 					break;
 				case ')':
-					levelParentheses--;
+					if (!inQuotes && !inComments) {
+						levelParentheses--;
+					}
 					break;
 			}
 
