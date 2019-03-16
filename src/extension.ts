@@ -111,8 +111,16 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	MainPanel.setPath(context.extensionPath);
-	let serializer = new REPLSerializer(getConnectionData, initRuntime);
-	vscode.window.registerWebviewPanelSerializer(MainPanel.viewType, serializer);
+	REPLSerializer.getConnectionData = getConnectionData;
+	REPLSerializer.initRuntime       = initRuntime;
+	if (vscode.window.registerWebviewPanelSerializer) {
+		// Make sure we register a serilizer in activation event
+		vscode.window.registerWebviewPanelSerializer(MainPanel.viewType, {
+			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+				MainPanel.revive(webviewPanel, context.extensionPath);
+			}
+		});
+	}
 
 	let msgRuntime   = CscsRuntime.getInstance(true);
 	initRuntime(msgRuntime);

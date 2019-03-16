@@ -4,15 +4,14 @@
 (function () {
     const vscode    = acquireVsCodeApi();
 
-    const PROMPT    = 'REPL> ';
-    const PROMPT_   = PROMPT.trim();
-    const EDIT_AREA = 'output';
-    const output    = document.getElementById(EDIT_AREA);
+    const PROMPT          = 'REPL> ';
+    const PROMPT_         = PROMPT.trim();
+    const EDIT_AREA       = 'output';
+    const output          = document.getElementById(EDIT_AREA);
 
-    const DOWN_KEY  = 'k';  
-    const UP_KEY    = 'i';  
+    const DOWN_KEY        = 'k';  
+    const UP_KEY          = 'i';  
 
-    var history           = new Array;
     var loaded            = new Array;
     var current           = -1;
     var running           = false;
@@ -38,12 +37,15 @@
     }
 
     const prevState = vscode.getState();
-    let outputData  = prevState ? prevState.outputData : PROMPT;
+    let outputData  = prevState && prevState.outputData ? prevState.outputData : PROMPT;
+    let history     = prevState && prevState.history    ? prevState.history : new Array;
     output.value    = outputData;
 
     //vscode.postMessage({command: 'info', text: 'prevState ? ' + (prevState ? '1' : '0')});
     vscode.postMessage({command: 'request_id', text: ''});
-    if (prevState) {
+    if (history.length > 0) {
+        vscode.postMessage({command: 'send_history', history: history});
+    } else {
         vscode.postMessage({command: 'request_history', text: ''});
     }
     gotoBottom();
@@ -158,6 +160,10 @@
         return selected;
     }
 
+    function cacheData() {
+        vscode.setState({ outputData: output.value, history: history });
+    }
+
     function sendReplCommand() {
         //var cmd = entry.value;
         var cmd =  '';
@@ -180,7 +186,7 @@
         resetArrowMode();
         //outputData = PROMPT + '<font color="aqua">' + cmd + '</font>' + '\n<br>' + outputData;
         //outputData += (outputData == '' ? '' : '\n') + PROMPT + cmd;
-        vscode.setState({ outputData: output.value });
+        cacheData();
         //vscode.postMessage({ command: 'info', text: 'REPL [' + cmd + '] running:'+ running});
         if (!running && cmd === '') {
             //vscode.postMessage({command: 'info', text: 'Calling reset cmd=' + cmd});
@@ -349,7 +355,7 @@
     });
 
     setInterval(() => {
-        vscode.setState({ outputData: output.value });
+        cacheData();
     }, 1000);
 
     // Handle messages sent from the extension to the webview
@@ -358,7 +364,7 @@
         switch (message.command) {
             case 'repl_response':
                 resetLastLine(message.text, true);
-                vscode.setState({ outputData: output.value});
+                cacheData();
                 //var color = message.text.startsWith('Exception thrown') ? 'red' : 'lime';
                 //outputData = '<font color="' + color + '">' + message.text + '</font>\n<br>' + outputData;
                 //display.innerHTML = PROMPT + '\n<br>' + outputData;

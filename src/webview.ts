@@ -9,8 +9,7 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 	static getConnectionData: () => [string, string, number];
 	
 	async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-		//console.log(`Got state: ${state}`);
-		MainPanel.revive(webviewPanel);
+		MainPanel.revive(webviewPanel, MainPanel.extensionPath);
 		REPLSerializer.init();
 	}
 
@@ -42,12 +41,6 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 				}
 			});
 		}	
-	}
-
-	public constructor(	connectionDetailsFunction: () => [string, string, number],
-			initFunction: (cscsRuntime : CscsRuntime) => void) {		
-		REPLSerializer.getConnectionData = connectionDetailsFunction;
-		REPLSerializer.initRuntime       = initFunction;
 	}
 }
 
@@ -86,15 +79,20 @@ export class MainPanel  extends EventEmitter {
 		});
 
 		MainPanel.currentPanel = new MainPanel(panel);
+		REPLSerializer.init();
 		return MainPanel.currentPanel;
 	}
 
 	public static setPath(extensionPath: string) {
-		MainPanel.extensionPath = extensionPath;
+		if (extensionPath !== '') {
+			MainPanel.extensionPath = extensionPath;
+		}
 	}
 
-	public static revive(panel: vscode.WebviewPanel) {
-		MainPanel.createOrShow(MainPanel.extensionPath);
+	public static revive(panel: vscode.WebviewPanel, extensionPath: string) {
+		MainPanel.setPath(extensionPath);
+		MainPanel.currentPanel = new MainPanel(panel);
+		REPLSerializer.init();
 	}
 
 	public constructor(	panel: vscode.WebviewPanel) {
@@ -148,6 +146,9 @@ export class MainPanel  extends EventEmitter {
 				case 'request_history':
 					MainPanel.sendHistory();
 					return;
+				case 'send_history':
+					MainPanel.getHistory(message.history);
+					return;
 				case 'repl':
 					if (MainPanel.globalId !== message.id) {
 						return;
@@ -166,8 +167,14 @@ export class MainPanel  extends EventEmitter {
 		}
 	}
 	public static sendHistory() {
+		if (MainPanel.currentPanel !== undefined && MainPanel.cmdHistory.length > 0) {
+			MainPanel.currentPanel._panel.webview.postMessage({ command: 'history',
+			 history: MainPanel.cmdHistory });
+		}
+	}
+	public static getHistory(history : Array<string>) {
 		if (MainPanel.currentPanel !== undefined) {
-			MainPanel.currentPanel._panel.webview.postMessage({ command: 'history', history: MainPanel.cmdHistory });
+			MainPanel.cmdHistory = history;
 		}
 	}
 	public static addHistory(commands : Array<string>) {
@@ -394,5 +401,3 @@ function getNonce() {
 	}
 	return text;
 }
-  
-
