@@ -38,9 +38,14 @@ This is how you can configure CSCS debugger when you use it for the first time (
 ![Setting up Debugger](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/configureDebugger.gif)
 
 ### CSCS Extension Configuration
-You can configure various debugging parameters in Visual Studio Code settings (use the keyboard shortcut (⌘,)). Connect type parameter is currently not used, but you can configure the debugging host and port (remote debugging is possible as well but don't forget opening the corresponding port in the firewall settings).
+You can configure various debugging parameters in Visual Studio Code settings (use the keyboard shortcut (⌘, on Mac and Ctrl, on Windows)). Connect type parameter is currently not used, but you can configure the debugging host and port (remote debugging is possible as well but don't forget opening the corresponding port in the firewall settings).
 
 ![Configuring Debugger](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/DebugSettings.png)
+
+## CSCS REPL Window
+You can use REPL either by selecting some text and pressing Cmd-8 (Ctrl-8) or by typing on a bash-like command-line interface. Right click on a file title and choose "Start CSCS REPL Session" option to start a separate REPL window:
+
+![Starting REPL Session](https://raw.githubusercontent.com/vassilych/cscs-debugger/master/images/newRepl.gif)
 
 ## Questions, Issues, Feature requests
 
@@ -76,8 +81,9 @@ The corresponding `launch.json` configuration looks like this:
             "type": "cscs",
             "request": "launch",
             "name": "CSCS Debugger",
-            "program": "${workspaceFolder}/${command:AskForProgramName}",
+            "program": "${workspaceFolder}/${command:RunLocal}",
             "stopOnEntry": true,
+            "serverBase": "",
             "connectType": "sockets",
             "serverPort": 13337,
             "serverHost": "127.0.0.1"
