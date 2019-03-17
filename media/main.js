@@ -11,7 +11,7 @@
 
     const DOWN_KEY        = 'k';
     const UP_KEY          = 'i';
-    const TIMEOUT         = 5 * 1000;
+    const TIMEOUT         = 4 * 1000;
 
     var loaded            = new Array;
     var current           = -1;
@@ -54,7 +54,6 @@
     } else {
         vscode.postMessage({command: 'request_history', text: ''});
     }
-    gotoBottom();
     setCursorEnd();
 
     function getREPLRequest() {
@@ -209,9 +208,8 @@
         if (responseReceived) {
             return;
         }
-        vscode.postMessage({ command: 'error', text: "Couldn't connect to REPL server"});
-        output.value += "\nCouldn't connect to the REPL server";
-        output.value += '\n' + PROMPT;
+        output.value += "\nCouldn't connect to the REPL server\n" + PROMPT;
+        setCursorEnd();    
     }
 
     //document.addEventListener('mouseover', function (event) { });

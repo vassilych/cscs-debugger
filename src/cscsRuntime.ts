@@ -340,7 +340,8 @@ export class CscsRuntime extends EventEmitter {
 			this.printCSCSOutput('Connecting to ' + this._host + ":" + this._port + '...', '', -1, ''); // no new line
 			//console.log('Connecting to ' + this._host + ":" + this._port + '...');
 
-			this._debugger.setTimeout(10 * 1000);
+			let timeout  = this._host === '127.0.0.1' || this._host === 'localhost' || this._host === '' ? 3.5 : 10;
+			this._debugger.setTimeout(timeout * 1000);
 
 			this._debugger.connect(this._port, this._host, () => {
 				this._connected = true;
