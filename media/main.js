@@ -41,7 +41,6 @@
     let history     = prevState && prevState.history    ? prevState.history : new Array;
     output.value    = outputData;
 
-    //vscode.postMessage({command: 'info', text: 'prevState ? ' + (prevState ? '1' : '0')});
     vscode.postMessage({command: 'request_id', text: ''});
     if (history.length > 0) {
         vscode.postMessage({command: 'send_history', history: history});
@@ -153,7 +152,7 @@
     function getSelection() {
         var start    = output.selectionStart;
         var end      = output.selectionEnd;
-        if (start === end) {
+        if (start >= end) {
             return '';
         }
         var selected   = output.value.substr(start, end - start);
@@ -163,9 +162,11 @@
     function cacheData() {
         vscode.setState({ outputData: output.value, history: history });
     }
+    setInterval(() => {
+        cacheData();
+    }, 1000);
 
     function sendReplCommand() {
-        //var cmd = entry.value;
         var cmd =  '';
    
         if (running && currRunCmd < loaded.length) {
@@ -180,16 +181,13 @@
                 return;
             }
             cmd = getREPLRequest();
-            //entry.value = "";
         }
 
         resetArrowMode();
-        //outputData = PROMPT + '<font color="aqua">' + cmd + '</font>' + '\n<br>' + outputData;
-        //outputData += (outputData == '' ? '' : '\n') + PROMPT + cmd;
         cacheData();
+        //outputData = PROMPT + '<font color="aqua">' + cmd + '</font>' + '\n<br>' + outputData;
         //vscode.postMessage({ command: 'info', text: 'REPL [' + cmd + '] running:'+ running});
         if (!running && cmd === '') {
-            //vscode.postMessage({command: 'info', text: 'Calling reset cmd=' + cmd});
             resetLastLine();
             return;            
         }
@@ -270,14 +268,11 @@
             loaded.length  = 0;
             vscode.postMessage({command: 'clear_history', text: ''});
         }
-        /*if (key === 'x' && (event.metaKey || event.ctrlKey)) {
+        /* else if (key === 'x' && (event.metaKey || event.ctrlKey)) {
             outputData = '';
             output.value = PROMPT;
-            return;
-        }
-        if (key === 'u' && (event.metaKey || event.ctrlKey)) {
+        } else if (key === 'u' && (event.metaKey || event.ctrlKey)) {
             startRunning();
-            return;
         }*/
 
         if (key !== DOWN_KEY && key !== UP_KEY || (!event.metaKey && !event.ctrlKey)) {
@@ -339,24 +334,17 @@
 
         if (key === 'Escape' || key === 'Esc') {
             running = false;
-            //entry.value = '';
             //display.innerHTML = PROMPT + '\n<br>' + outputData;
             resetLastLine();
-            //current = history.length - 1;
             resetArrowMode();
         } else if (key === 'Enter') {
             running = false;
             let isValid = isCursorLastLine(true);
             if (isValid) {
                 sendReplCommand();
-                //vscode.postMessage({command: 'info', text: key + ' SENDING REPL'});
             }
         }
     });
-
-    setInterval(() => {
-        cacheData();
-    }, 1000);
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
@@ -368,7 +356,6 @@
                 //var color = message.text.startsWith('Exception thrown') ? 'red' : 'lime';
                 //outputData = '<font color="' + color + '">' + message.text + '</font>\n<br>' + outputData;
                 //display.innerHTML = PROMPT + '\n<br>' + outputData;
-                //output.textContent += "\nREPL> " + message.text;
                 if (running) {
                     sendReplCommand();
                 }
