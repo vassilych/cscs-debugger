@@ -9,8 +9,9 @@
     const EDIT_AREA       = 'output';
     const output          = document.getElementById(EDIT_AREA);
 
-    const DOWN_KEY        = 'k';  
-    const UP_KEY          = 'i';  
+    const DOWN_KEY        = 'k';
+    const UP_KEY          = 'i';
+    const TIMEOUT         = 5 * 1000;
 
     var loaded            = new Array;
     var current           = -1;
@@ -22,6 +23,8 @@
     var lastCmdIndex      = -1;
     var selectedText      = '';
     var id                = 1;
+    var responseReceived  = 0;
+
     //display.innerHTML = PROMPT;
 
     function gotoBottom() {
@@ -40,6 +43,10 @@
     let outputData  = prevState && prevState.outputData ? prevState.outputData : PROMPT;
     let history     = prevState && prevState.history    ? prevState.history : new Array;
     output.value    = outputData;
+    let lastLine    = getLastLine();
+    if (!lastLine.startsWith(PROMPT_)) {
+        output.value += '\n' + PROMPT;
+    }
 
     vscode.postMessage({command: 'request_id', text: ''});
     if (history.length > 0) {
@@ -162,6 +169,7 @@
     function cacheData() {
         vscode.setState({ outputData: output.value, history: history });
     }
+
     setInterval(() => {
         cacheData();
     }, 1000);
@@ -192,8 +200,20 @@
             return;            
         }
         //display.innerHTML = outputData;
+        responseReceived = false;
         vscode.postMessage({ command: 'repl', text: cmd, id: id });
+        setTimeout(function(){ onReplTimeout(); }, TIMEOUT);
     }
+
+    function onReplTimeout() {
+        if (responseReceived) {
+            return;
+        }
+        vscode.postMessage({ command: 'error', text: "Couldn't connect to REPL server"});
+        output.value += "\nCouldn't connect to the REPL server";
+        output.value += '\n' + PROMPT;
+    }
+
     //document.addEventListener('mouseover', function (event) { });
     document.addEventListener('mousedown', function (event) {
         var active = document.activeElement.id;
@@ -338,6 +358,7 @@
             resetLastLine();
             resetArrowMode();
         } else if (key === 'Enter') {
+            //vscode.postMessage({ command: 'info', text: 'Enter'});
             running = false;
             let isValid = isCursorLastLine(true);
             if (isValid) {
@@ -351,6 +372,7 @@
         const message = event.data; // The json data that the extension sent
         switch (message.command) {
             case 'repl_response':
+                responseReceived = true;
                 resetLastLine(message.text, true);
                 cacheData();
                 //var color = message.text.startsWith('Exception thrown') ? 'red' : 'lime';
