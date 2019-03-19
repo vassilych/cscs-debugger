@@ -11,7 +11,7 @@
 
     const DOWN_KEY        = 'k';
     const UP_KEY          = 'i';
-    const TIMEOUT         = 4 * 1000;
+    const TIMEOUT         = 5 * 1000;
 
     var loaded            = new Array;
     var current           = -1;
@@ -201,15 +201,15 @@
         //display.innerHTML = outputData;
         responseReceived = false;
         vscode.postMessage({ command: 'repl', text: cmd, id: id });
-        setTimeout(function(){ onReplTimeout(); }, TIMEOUT);
+        setTimeout(onReplTimeout, TIMEOUT);
     }
 
     function onReplTimeout() {
         if (responseReceived) {
             return;
         }
-        output.value += "\nCouldn't connect to the REPL server\n" + PROMPT;
-        setCursorEnd();    
+        output.value += "\n*** No response received from the REPL server ***\n" + PROMPT;
+        setCursorEnd();
     }
 
     //document.addEventListener('mouseover', function (event) { });

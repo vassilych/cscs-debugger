@@ -103,7 +103,7 @@ export class MainPanel  extends EventEmitter {
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-		console.info("New WebView. ExtensionPath: " + MainPanel.extensionPath);
+		console.info("WebView Extension Path: " + MainPanel.extensionPath);
 
 		this._panel.onDidChangeViewState(e => {
 			if (this._panel.visible) {

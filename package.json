@@ -2,14 +2,14 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger & REPL",
 	"description": "CSCS (Customized Scripting in C#) Debugger and REPL Extension",
-	"version": "0.5.7",
+	"version": "0.5.9",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
 		"email": "vassilik@gmail.com"
 	},
 	"engines": {
-		"vscode": "^1.30.0-insider",
+		"vscode": "^1.26.0",
 		"node": "^8.9.3"
 	},
 	"categories": [
