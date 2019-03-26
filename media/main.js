@@ -25,7 +25,8 @@
     var id                = 1;
     var responseReceived  = 0;
 
-    //display.innerHTML = PROMPT;
+    var cmdCache          = '';
+    var textCache         = '';
 
     function gotoBottom() {
         output.scrollTop = output.scrollHeight - output.clientHeight;
@@ -49,6 +50,16 @@
     }
 
     vscode.postMessage({command: 'request_id', text: ''});
+    if (history.length > 0) {
+        var arr = new Array;
+        for (let  i = 0; i < history.length; i++) {
+            let cmd = history[i].trim();
+            if (cmd != '') {
+                arr.push(cmd);
+            }
+        }
+        history = arr;
+    }
     if (history.length > 0) {
         vscode.postMessage({command: 'send_history', history: history});
     } else {
@@ -95,13 +106,9 @@
             let before = output.value.substr(0, index);
             let cmd = prev + last;
             output.value = before + cmd + '\n';
-            //vscode.postMessage({command: 'info', text: 'ind=' + index +',selStart='+output.selectionStart+
+            //vscode.postMessage({command: 'info', text: 'ind=' + index +',selSt='+output.selectionStart+
             //  ', prev=['+prev+'], last=['+last+']'});
-            if (!prev.startsWith(PROMPT_)) {
-                output.value += PROMPT;
-                return false;
-            }
-    }
+        }
         return true;
     }
 
@@ -116,12 +123,17 @@
     function resetLastLine(cmd = '', replResponse = false) {
         let lastIndex = getLastLineIndex();
         let before = lastIndex > 0 ? output.value.substr(0, lastIndex) : '';
-        output.value = before + (replResponse ? '' : PROMPT) + cmd;
-        if (replResponse) {
-            output.value += '\n' + (running ? '' : PROMPT);
+        if (before !== '' && !before.endsWith('\n')) {
+            before += '\n';
+        }
+        if (!replResponse) {
+            output.value = before + PROMPT + cmd;
+        } else {
+            output.value = before + cmd + '\n' + (running ? '' : PROMPT);
         }
         setCursorEnd();
-        //vscode.postMessage({command: 'info', text: 'before [' + before + '] ' + ', cmd=' + cmd + ':' + lastIndex});
+        //vscode.postMessage({command: 'info', text: 'before [' + before.substr(Math.max(0, before.length - 16))
+        //    + '] cmd=' + cmd + ':' + lastIndex+ ' :' + replResponse});
         //output.value = (outputData == '' ? '' : outputData + '\n') + PROMPT + cmd;
     }
 
@@ -156,12 +168,16 @@
     }
 
     function getSelection() {
-        var start    = output.selectionStart;
-        var end      = output.selectionEnd;
+        var start = output.selectionStart;
+        var end   = output.selectionEnd;
         if (start >= end) {
+            end   = output.value.indexOf('\n', start + 1);
+            start = output.value.lastIndexOf('\n', start);
+        }
+        if (start >= end || start < 0) {
             return '';
         }
-        var selected   = output.value.substr(start, end - start);
+        var selected = output.value.substr(start, end - start);
         return selected;
     }
 
@@ -173,15 +189,13 @@
         cacheData();
     }, 1000);
 
-    function sendReplCommand() {
-        var cmd =  '';
-   
+    function sendReplCommand(cmd = '') {
         if (running && currRunCmd < loaded.length) {
             cmd = loaded[currRunCmd];
             output.value += (output.value.endsWith('\n') ? '' : '\n') + PROMPT + cmd + '\n';
             currRunCmd++;
             //entry.value = cmd;
-        } else {
+        } else if (cmd === '') {
             if (running) {
                 output.value += PROMPT;
                 running = false;
@@ -196,7 +210,7 @@
         //vscode.postMessage({ command: 'info', text: 'REPL [' + cmd + '] running:'+ running});
         if (!running && cmd === '') {
             resetLastLine();
-            return;            
+            return;
         }
         //display.innerHTML = outputData;
         responseReceived = false;
@@ -244,13 +258,17 @@
         vscode.postMessage({command: 'get_clipboard', text: ''});
     });
 
+    function clearScreen() {
+        outputData = '';
+        output.value = PROMPT;
+        setCursorEnd();
+    }
+
     document.addEventListener('click', function (event) {
         var active = document.activeElement.id;
 
         if (active === 'btnClear') {
-            outputData = '';
-            output.value = PROMPT;
-            setCursorEnd();
+            clearScreen();
         } else  if (active === 'btnSave') {
             vscode.postMessage({command: 'save', text: ''});
         } else if (active === 'btnLoad') {
@@ -269,11 +287,10 @@
 
     document.addEventListener('keydown', function (event) {
         var active = document.activeElement.id;
-        var key = event.key || event.keyCode;
-
         if (active !== EDIT_AREA) {
             return;
         }
+        var key = event.key || event.keyCode;
     
         if (key === 'h' && (event.metaKey || event.ctrlKey)) {
             vscode.postMessage({command: 'show_history', text: ''});
@@ -281,10 +298,15 @@
             vscode.postMessage({command: 'load', text: ''});
         } else if (key === 's' && (event.metaKey || event.ctrlKey)) {
             vscode.postMessage({command: 'save', text: ''});
+        } else if (key === 'd' && (event.metaKey || event.ctrlKey)) {
+            clearScreen();
         } else if (key === 'm' && (event.metaKey || event.ctrlKey)) {
             history.length = 0;
             loaded.length  = 0;
             vscode.postMessage({command: 'clear_history', text: ''});
+        } else if (key === 'Enter' && (event.shiftKey || event.metaKey)) {
+            cmdCache  = getSelection();
+            textCache = output.value;
         }
         /* else if (key === 'x' && (event.metaKey || event.ctrlKey)) {
             outputData = '';
@@ -345,16 +367,21 @@
         //vscode.postMessage({command: 'info', text: key + ' - ' + event.ctrlKey + ' - ' + event.metaKey});
         //}
 
-        if (event.shiftKey && (event.ctrlKey || Event.metaKey) && key.toUpperCase === 'V') {
+        /*if (event.shiftKey && (event.ctrlKey || Event.metaKey) && key.toUpperCase === 'V') {
             vscode.postMessage({command: 'info', text: key + ' Meta:' + event.metaKey + ' Ctrl:' + event.ctrlKey});
             vscode.postMessage({command: 'get_clipboard', text: ''});
-        }
+        }*/
 
         if (key === 'Escape' || key === 'Esc') {
             running = false;
             //display.innerHTML = PROMPT + '\n<br>' + outputData;
             resetLastLine();
             resetArrowMode();
+        } else if (key === 'Enter' && (event.shiftKey || event.metaKey )) {
+            running = false;
+            output.value = textCache + '\n' + PROMPT + cmdCache + '\n';
+            //vscode.postMessage({ command: 'info', text: 'XEnter:' + cmdCache});
+            sendReplCommand(cmdCache);
         } else if (key === 'Enter') {
             //vscode.postMessage({ command: 'info', text: 'Enter'});
             running = false;

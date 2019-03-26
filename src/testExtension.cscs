@@ -1,0 +1,57 @@
+a=1;
+//b=2;
+c=3;
+//d=4;
+e=5;
+
+function FunctionNameInsideDoesNotExist() {
+ FunctionDoesNotExist();
+}
+FunctionNameInsideDoesNotExist();
+
+i = 0;
+while (++i < 10) {
+    print("i=", i);    // GO AWAY
+    print("i2=", i);
+    if (i > 3) {
+        break;
+    }
+}
+while (i < 10) {
+    // GO AWAY
+    break;
+}
+
+a=1;
+b=2;
+c=3;
+a;
+//w
+x=5;
+
+function printIt( o1, o2, o3, o4, o5, o6 ) {
+  print( o1 );
+  print( o2 );
+  print( o3 );
+  print( o4 );
+  print( o5 );
+  print( o6 );
+}
+printIt({}, "F1_256.png", { 60, 60} , "", "log.Warn( 'F1');", "F1"); 
+
+class Stuff1 {
+  x = 2;
+  Stuff1(a) {
+    x = a;
+  }
+  function addStuff1(n) {
+    return n + x;
+  }
+}
+class CoolStuff : Stuff1 {
+  function work(n) {
+    return 10*addStuff1(n);
+  }
+}
+a = new CoolStuff();
+print(a.work(5));

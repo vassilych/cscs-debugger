@@ -185,6 +185,8 @@ export class CscsRuntime extends EventEmitter {
 		let inComments       = false;
 		let simpleComments   = false;
 		let inQuotes         = false;
+		let inQuotes1        = false;
+		let inQuotes2        = false;
 		let prev             = '';
 		let prevprev         = '';
 		
@@ -216,11 +218,14 @@ export class CscsRuntime extends EventEmitter {
 						continue;
 					}
 					break;
+				case "'":
+					if (!inComments && !inQuotes2 && (prev !== '\\' || prevprev === '\\'))	{
+						inQuotes = inQuotes1 = !inQuotes1;
+					}
+					break;
 				case '"':
-					if (!inComments) {
-						if (prev !== '\\' || prevprev === '\\')	{
-							inQuotes = !inQuotes;
-						}
+					if (!inComments && !inQuotes1 && (prev !== '\\' || prevprev === '\\'))	{
+						inQuotes = inQuotes2 = !inQuotes2;
 					}
 					break;
 				case '\n':
@@ -238,7 +243,7 @@ export class CscsRuntime extends EventEmitter {
 					if (!inQuotes && !inComments) {
 						levelCurly--;
 						inCurly = levelCurly > 0;
-						completed = !inCurly;	
+						completed = !inCurly && levelParentheses === 0 && levelBrackets === 0;
 					}
 					break;
 				case '[':

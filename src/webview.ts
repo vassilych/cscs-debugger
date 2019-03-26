@@ -187,6 +187,7 @@ export class MainPanel  extends EventEmitter {
 	}
 
 	public static addHistoryCommand(cmd : string) {
+		cmd = cmd.trim();
 		if (cmd === '') {
 			return;
 		}
@@ -352,18 +353,19 @@ export class MainPanel  extends EventEmitter {
 			<h4 id="tips">
 			<table border="0">
 			<tr>
-			    <td><font color="aqua"><span><b>&#8984;-I</b></span></font> Previous Command &nbsp; &nbsp;</td>
-				<td><font color="aqua"><span><b>&#8984;-K</b></span></font> Next Command &nbsp; &nbsp;</td>
-				<td><font color="aqua"><b>&lt;ENTER&gt;</b></font> Evaluate</td>
-			</tr>
-			<tr>
-				<td><font color="aqua"><b>&lt;ESC&gt;</b></font> Clear Line &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>ENTER</b></font> Evaluate</td>
+				<td><font color="aqua"><b>SHIFT-ENTER</b></font> Eval Selected</td>
 				<td><font color="aqua"><b>&#8984;-H (&#8963;H)</b></font> History &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;-M</b></font> Clear History &nbsp; &nbsp;</td>
+			</tr>
+			<tr>
+			<td><font color="aqua"><span><b>&#8984;-K</b></span></font> Next Command &nbsp; &nbsp;</td>
+			<td><font color="aqua"><span><b>&#8984;-I</b></span></font> Previous Command &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&lt;ESC&gt;</b></font> Clear Line &nbsp; &nbsp;</td>
+				<td><font color="aqua"><b>&#8984;-D</b></font> Clear Screen &nbsp; &nbsp;</td>
 			<!--<td><font color="aqua"><b>&#8984;L (&#8963;L)</b></font> Load Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;S (&#8963;S)</b></font> Save Session &nbsp; &nbsp;</td>
 				<td><font color="aqua"><b>&#8984;U (&#8963;U)</b></font> Run Loaded &nbsp; &nbsp;</td>
-				<td><font color="aqua"><b>&#8984;X (&#8963;X)</b></font> Clear Screen &nbsp; &nbsp;</td>
 			-->
 			</tr>
 		   </table>
@@ -381,7 +383,7 @@ export class MainPanel  extends EventEmitter {
 				<!--<div id='status' align='center' ><font color="green">${connStatus}</font></div>
 				-->
                 <hr>
-				<textarea tag = "output" id="output" name="output_field" rows="40" cols="120">REPL> </textarea>
+				<textarea tag = "output" id="output" name="output_field" rows="36" cols="120">REPL> </textarea>
 				<div id='display' align='left' style="overflow:auto;height:400px;">
 				</div>
 
