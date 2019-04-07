@@ -7,7 +7,8 @@ import { CscsRuntime } from './cscsRuntime';
 export class REPLSerializer implements vscode.WebviewPanelSerializer {
 	static initRuntime: (cscsRuntime : CscsRuntime) => void;
 	static getConnectionData: () => [string, string, number];
-	
+	static getActiveFilename: () => string;
+
 	async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
 		MainPanel.revive(webviewPanel, MainPanel.extensionPath);
 		REPLSerializer.init();
@@ -29,6 +30,7 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 				MainPanel.init = false;
 				
 				try {
+					//code = REPLSerializer.getActiveFilename() + "|" + code;
 					let cmdSent = cscsRuntime.sendRepl(code);
 					MainPanel.addHistory(cmdSent);
 					if (cmdSent.length === 0 && MainPanel.currentPanel !== undefined) {
@@ -40,7 +42,7 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 					}
 				}
 			});
-		}	
+		}
 	}
 }
 

@@ -2,7 +2,7 @@
 	"name": "cscs-debugger",
 	"displayName": "CSCS Debugger & REPL",
 	"description": "CSCS (Customized Scripting in C#) Debugger and REPL Extension",
-	"version": "0.5.9",
+	"version": "0.6.8",
 	"publisher": "vassilik",
 	"author": {
 		"name": "Vassili Kaplan",
@@ -66,6 +66,7 @@
 		"onCommand:extension.cscs-debug.runRemote",
 		"onCommand:extension.cscs-debug.repl",
 		"onCommand:cscs.repl.start",
+		"onCommand:cscs.repl.all",
 		"onWebviewPanel:cscs.repl"
 	],
 	"contributes": {
@@ -103,16 +104,22 @@
 			},
 			{
 				"command": "extension.cscs-debug.runLocal",
-				"title": "Start Debugging",
+				"title": "Start Debugging File",
 				"category": "CSCS"
 			},
 			{
 				"command": "extension.cscs-debug.repl",
-				"title": "CSCS REPL"
+				"title": "CSCS REPL",
+				"category": "CSCS REPL"
 			},
 			{
 				"command": "cscs.repl.start",
-				"title": "Start CSCS REPL Session",
+				"title": "Start new REPL Session",
+				"category": "CSCS REPL"
+			},
+			{
+				"command": "cscs.repl.all",
+				"title": "Send File To CSCS REPL",
 				"category": "CSCS REPL"
 			}
 		],
@@ -121,9 +128,26 @@
 				"when": "resourceLangId == cscs",
 				"command": "cscs.repl.start",
 				"group": "CSCS"
+			},{
+				"when": "resourceLangId == cscs",
+				"command": "cscs.repl.all",
+				"group": "CSCS"
+			},{
+				"when": "resourceLangId == cscs",
+				"command": "extension.cscs-debug.repl",
+				"group": "CSCS"
 			}],
             "editor/title/context": [{
+				"when": "resourceLangId == cscs",
 				"command": "cscs.repl.start",
+				"group": "CSCS"
+			},{
+				"when": "resourceLangId == cscs",
+				"command": "cscs.repl.all",
+				"group": "CSCS"
+			},{
+				"when": "resourceLangId == cscs",
+				"command": "extension.cscs-debug.repl",
 				"group": "CSCS"
 			}]
 		},
@@ -138,6 +162,12 @@
 				"command": "cscs.repl.start",
 				"key": "ctrl+7",
 				"mac": "cmd+7",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "cscs.repl.all",
+				"key": "shift+ctrl+8",
+				"mac": "shift+cmd+8",
 				"when": "editorTextFocus"
 			}
 		],

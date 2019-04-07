@@ -110,9 +110,19 @@ export function activate(context: vscode.ExtensionContext) {
 		REPLSerializer.init();
 	}));
 
+	const getActiveFilename = () : string =>  {		
+		let textEditor = vscode.window.activeTextEditor;
+		if (!textEditor || !textEditor.document) {
+			return "";
+		}
+		let filePath = Path.resolve(textEditor.document.fileName);
+		return filePath;
+	};
+
 	MainPanel.setPath(context.extensionPath);
 	REPLSerializer.getConnectionData = getConnectionData;
 	REPLSerializer.initRuntime       = initRuntime;
+	REPLSerializer.getActiveFilename = getActiveFilename;
 	if (vscode.window.registerWebviewPanelSerializer) {
 		// Make sure we register a serilizer in activation event
 		vscode.window.registerWebviewPanelSerializer(MainPanel.viewType, {
@@ -138,9 +148,16 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		return text.trim();
 	};
+	const getAllText = () : string =>  {
+		let textEditor = vscode.window.activeTextEditor;
+		if (!textEditor || !textEditor.document) {
+			return "";
+		}
+		let text = textEditor.document.getText();
+		return text;
+	};
 
-	let disposable = vscode.commands.registerCommand('extension.cscs-debug.repl', () => {
-		let code = getCode();
+	const replCore = (code: string) => {
 		if (code === '') {
 			return;
 		}
@@ -151,12 +168,23 @@ export function activate(context: vscode.ExtensionContext) {
 		initRuntime(cscsRuntime);
 		try {
 			cscsRuntime.startRepl(connectType, host, port);	
-			cscsRuntime.sendRepl(code);
+			cscsRuntime.sendRepl(code, getActiveFilename());
 		} catch (err) {
 			vscode.window.showErrorMessage('REPL: ' + err);
 		}
+	};
+
+	let disposable = vscode.commands.registerCommand('extension.cscs-debug.repl', () => {
+		let code = getCode();
+		replCore(code);
 	});
+	let disposable2 = vscode.commands.registerCommand('cscs.repl.all', () => {
+		let code = getAllText();
+		replCore(code);
+	});
+
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(disposable2);
 
 	const providerCscs = new CscsConfigurationProvider()
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('cscs', providerCscs));

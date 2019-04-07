@@ -55,3 +55,65 @@ class CoolStuff : Stuff1 {
 }
 a = new CoolStuff();
 print(a.work(5));
+
+ct = new CompiledTest();
+ct.NaMe2="Lala";
+print(ct.properties);
+print(ct.NaMe);
+
+json = {};
+stockUrl="https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSFT&apikey=demo";
+function OnSuccess( object, text ) {
+  print( "Success xxx "+text );
+  json = GetVariableFromJsonNewton(text);
+  metaData = json["Meta Data"];
+  print ( metaData);
+  print(json[1][1]["2. high"]);
+  print ( metaData.keys);
+  for (key : metaData.keys) {
+    print("  key:", key, "\tDATA:", metaData[key]);
+  }
+}
+function OnFailure( object, errorCode ) {
+  print( "Falilure.", errorCode );
+}
+var = "";
+WebRequest(stockUrl, "OnSuccess", "OnFailure", "", 10, 0, json);
+
+json["Time Series (Daily)"][0].size
+//HTTPCall( "GET", stockUrl, "", "", "OnSuccess", "OnFailure" );
+
+a[1][1]= 11;
+x= a[1][1].size;
+x.size;
+
+
+
+function TakeScreenshotsOfAllSpotlights()
+{
+   viewpoints.Visible = false;
+   timestampString = system.UniqueTimestamp();
+   nSpotlightMax = spotlights.Count;
+   for( spotlightCounter=0; spotlightCounter<nSpotlightMax; spotlightCounter++)
+   {
+     currentName = spotlights.Name( spotlightCounter );
+     myDir = "c:/Spotlights/" + timestampString + "/";
+     spotlights.Load( spotlightCounter );
+     for( sceneCounter=0; sceneCounter<scenes.Count(); sceneCounter++)
+     {
+       scenes.Current = sceneCounter;
+       for( viewpointCounter=0; viewpointCounter<viewpoints.Count(); viewpointCounter++ )
+       {
+         v = viewpoints.Get( viewpointCounter );
+         viewpoints.Goto( viewpointCounter );
+         app.WaitForFrame();
+         sName = 'myDir + "" + spotlightCounter + "_" + sceneCounter + "_" + viewpointCounter + "_" + v.Name + ".png");
+         ui.TakeScreenshot( myDir + "" + spotlightCounter + "_" + sceneCounter + "_" + viewpointCounter + "_" + v.name + ".png");
+       }
+     }
+   }
+ }
+for( viewpointCounter=0; viewpointCounter<viewpoints.Count(); viewpointCounter++ )
+ {
+  {}
+}

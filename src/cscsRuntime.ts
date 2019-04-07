@@ -6,6 +6,7 @@
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { DebugProtocol } from 'vscode-debugprotocol';
+import { ContinuedEvent } from 'vscode-debugadapter';
 
 //import { CscsDebugSession } from './cscsDebug';
 //import * as vscode from 'vscode';
@@ -172,8 +173,36 @@ export class CscsRuntime extends EventEmitter {
 		//this.printCSCSOutput('StartDebug ' + host + ":" + port + "(" + this._instanceId + ")");
 	}
 
+	static throwErrorMsg(repl: string, level: number, lineStart: number, lineEnd: number,
+		                    msg: string) : string
+	{
+		let lines = repl.split('\n');
+
+		let lineNumber = level > 0 ? lineStart : lineEnd;
+		let currentLineNumber = lineNumber;
+		let line = lines[lineNumber].trim();
+		let collectMore = line.length < 3;
+		let lineContents = line;
+
+		while (collectMore && currentLineNumber > 0) {
+			line = lines[--currentLineNumber].trim();
+			collectMore = line.length < 2;
+			lineContents = line + "  " + lineContents;
+		}
+
+		let lineStr = currentLineNumber === lineNumber ? "Line " + (lineNumber+1) :
+		                  "Lines " + (currentLineNumber+1) + "-" + (lineNumber+1);
+
+		throw msg + " " + lineStr + ": " + lineContents;
+	}
+
 	splitREPL(repl: string) : [string, Array<string>]
 	{
+		let curlyErrorMsg   = "Unbalanced curly braces.";
+		let bracketErrorMsg = "Unbalanced square brackets.";
+		let parenthErrorMsg = "Unbalanced parentheses.";
+		let quoteErrorMsg   = "Unbalanced quotes.";
+
 		let command  = '';
 		let commands = new Array<string>();
 		let current  = '';
@@ -181,7 +210,6 @@ export class CscsRuntime extends EventEmitter {
 		let levelCurly       = 0;
 		let levelBrackets    = 0;
 		let levelParentheses = 0;
-		let levelQuotes      = 0;
 		let inComments       = false;
 		let simpleComments   = false;
 		let inQuotes         = false;
@@ -189,10 +217,24 @@ export class CscsRuntime extends EventEmitter {
 		let inQuotes2        = false;
 		let prev             = '';
 		let prevprev         = '';
-		
+		let lineNumber       = 0;
+		let lineNumberCurly  = 0;
+		let lineNumberBrack  = 0;
+		let lineNumberPar    = 0;
+		let lineNumberQuote  = 0;
+
 		for (let i = 0; i < repl.length; i++) {
 			let ch = repl[i];
 			let next = i < repl.length - 1 ? repl[i+1] : '';
+
+			if (ch === '\n')
+			{
+				if (simpleComments) {
+					inComments = simpleComments = false;
+				}
+				lineNumber++;
+				continue;
+			}
 			if (!inQuotes && ch === ' ' && current.endsWith(' ')) {
 				continue;
 			}
@@ -221,27 +263,32 @@ export class CscsRuntime extends EventEmitter {
 				case "'":
 					if (!inComments && !inQuotes2 && (prev !== '\\' || prevprev === '\\'))	{
 						inQuotes = inQuotes1 = !inQuotes1;
+						if (inQuotes) {
+							lineNumberQuote = lineNumber;
+						}
 					}
 					break;
 				case '"':
 					if (!inComments && !inQuotes1 && (prev !== '\\' || prevprev === '\\'))	{
 						inQuotes = inQuotes2 = !inQuotes2;
+						if (inQuotes) {
+							lineNumberQuote = lineNumber;
+						}
 					}
 					break;
-				case '\n':
-					if (simpleComments) {
-						inComments = simpleComments = false;
-					}
-					continue;
 				case '{':
 					if (!inQuotes && !inComments) {
 						inCurly = true;
 						levelCurly++;
+						lineNumberCurly = lineNumber;
 					}
 					break;
 				case '}':
 					if (!inQuotes && !inComments) {
 						levelCurly--;
+						if (levelCurly < 0) {
+							CscsRuntime.throwErrorMsg(repl, levelCurly, lineNumberCurly, lineNumber, curlyErrorMsg);
+						}
 						inCurly = levelCurly > 0;
 						completed = !inCurly && levelParentheses === 0 && levelBrackets === 0;
 					}
@@ -249,21 +296,29 @@ export class CscsRuntime extends EventEmitter {
 				case '[':
 					if (!inQuotes && !inComments) {
 						levelBrackets++;
+						lineNumberBrack = lineNumber;
 					}
 					break;
 				case ']':
 					if (!inQuotes && !inComments) {
 						levelBrackets--;
+						if (levelBrackets < 0) {
+							CscsRuntime.throwErrorMsg(repl, levelBrackets, lineNumberBrack, lineNumber, bracketErrorMsg);
+						}
 					}
 					break;
 				case '(':
 					if (!inQuotes && !inComments) {
 						levelParentheses++;
+						lineNumberPar = lineNumber;
 					}
 					break;
 				case ')':
 					if (!inQuotes && !inComments) {
 						levelParentheses--;
+						if (levelParentheses < 0) {
+							CscsRuntime.throwErrorMsg(repl, levelParentheses, lineNumberPar, lineNumber, parenthErrorMsg);
+						}
 					}
 					break;
 			}
@@ -289,47 +344,35 @@ export class CscsRuntime extends EventEmitter {
 			commands.push(current);
 		}
 
-		if (levelCurly !== 0) {
-			throw "Unmatched curly braces: " + levelCurly;
-		} else if (levelBrackets !== 0) {
-			throw "Unmatched square brackets: " + levelBrackets;
-		} else if (levelParentheses !== 0) {
-			throw "Unmatched parentheses: " + levelParentheses;
-		} else if (levelQuotes % 2 !== 0) {
-			throw "Unmatched quotes";
-		}
+		let error = levelCurly !== 0 || levelBrackets !== 0 ||
+		            levelParentheses !== 0 || inQuotes;
+		if (error) {
+			if (inQuotes) {
+				CscsRuntime.throwErrorMsg(repl, 1, lineNumberQuote, lineNumber, quoteErrorMsg);
+			} else if (levelBrackets !== 0) {
+				CscsRuntime.throwErrorMsg(repl, levelBrackets, lineNumberBrack, lineNumber, bracketErrorMsg);
+			} else if (levelParentheses !== 0) {
+				CscsRuntime.throwErrorMsg(repl, levelParentheses, lineNumberPar, lineNumber, parenthErrorMsg);
+			} else if (levelCurly !== 0) {
+				CscsRuntime.throwErrorMsg(repl, levelCurly, lineNumberCurly, lineNumber, curlyErrorMsg);
+			}
+	}
 
 		//command = command.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
 		return [command, commands];
 	}
 
-	public sendRepl(repl : string) : Array<string>
+	public sendRepl(repl: string, filename = '') : Array<string>
 	{
-		/*let start = 0;
-		let end   = -1;
-		let filtered = ''
-		while (true) {
-			start = repl.indexOf('//', end + 1);
-			if (start < 0) {
-				filtered += repl.substr(end + 1);
-				break;
-			}
-
-			if (start > end + 1) {
-				filtered += repl.substr(end + 1, start - end - 1);
-			}
-			end = repl.indexOf('\n', start);
-			if (end < 0) {
-				break;
-			}
-		}
-
-		let cmd = filtered.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();*/
 		let result = this.splitREPL(repl);
 		let cmd = result[0];
 		let commands =result[1];
 
 		if (cmd !== '') {
+			filename = filename.trim();
+			if (filename !== '') {
+				cmd = filename + "|" + cmd;
+			}
 			this.sendToServer('repl', cmd);
 		}
 
