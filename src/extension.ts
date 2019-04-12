@@ -167,9 +167,10 @@ export function activate(context: vscode.ExtensionContext) {
 		[connectType, host, port] = getConnectionData();
 		initRuntime(cscsRuntime);
 		try {
-			cscsRuntime.startRepl(connectType, host, port);	
+			cscsRuntime.startRepl(connectType, host, port);
 			cscsRuntime.sendRepl(code, getActiveFilename());
 		} catch (err) {
+			cscsRuntime.makeInvalid();
 			vscode.window.showErrorMessage('REPL: ' + err);
 		}
 	};

@@ -37,6 +37,7 @@ export class REPLSerializer implements vscode.WebviewPanelSerializer {
 						MainPanel.currentPanel.sendReplResponse('');
 					}
 				} catch (err) {
+					cscsRuntime.makeInvalid();
 					if (MainPanel.currentPanel !== undefined) {
 						MainPanel.currentPanel.sendReplResponse("Error: " + err);
 					}

@@ -74,6 +74,7 @@ export class CscsRuntime extends EventEmitter {
 	private _continue     = false;
 	private _isException  = false;
 	private _replInstance = false;
+	private _isValid      = true;
 
 	private _gettingFile  = false;
 	private _fileTotal    = 0;
@@ -178,6 +179,10 @@ export class CscsRuntime extends EventEmitter {
 	{
 		let lines = repl.split('\n');
 
+		if (lines.length <= 1) {
+			throw msg;
+		}
+
 		let lineNumber = level > 0 ? lineStart : lineEnd;
 		let currentLineNumber = lineNumber;
 		let line = lines[lineNumber].trim();
@@ -203,7 +208,7 @@ export class CscsRuntime extends EventEmitter {
 		let parenthErrorMsg = "Unbalanced parentheses.";
 		let quoteErrorMsg   = "Unbalanced quotes.";
 
-		let command  = '';
+		let cmd      = '';
 		let commands = new Array<string>();
 		let current  = '';
 		let inCurly  = false;
@@ -227,11 +232,14 @@ export class CscsRuntime extends EventEmitter {
 			let ch = repl[i];
 			let next = i < repl.length - 1 ? repl[i+1] : '';
 
-			if (ch === '\n')
-			{
+			if (ch === '\r') {
+				continue;
+			}
+			if (ch === '\n') {
 				if (simpleComments) {
 					inComments = simpleComments = false;
 				}
+				cmd       += '\r';
 				lineNumber++;
 				continue;
 			}
@@ -324,7 +332,7 @@ export class CscsRuntime extends EventEmitter {
 			}
 
 			if (!inComments && ch !== '\n') {
-				command += ch;
+				cmd     += ch;
 				current += ch;
 			}
 			prevprev = prev;
@@ -358,8 +366,7 @@ export class CscsRuntime extends EventEmitter {
 			}
 	}
 
-		//command = command.replace(/\n/g, ' ').replace(/\r/g, ' ').trim();
-		return [command, commands];
+		return [cmd, commands];
 	}
 
 	public sendRepl(repl: string, filename = '') : Array<string>
@@ -526,6 +533,9 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	protected processFromDebugger(data : any) {
+		if (!this.isValid()) {
+			return;
+		}
 		let lines = data.toString().split('\n');
 		let currLine = 0;
 		let response = lines[currLine++].trim();
@@ -599,9 +609,6 @@ export class CscsRuntime extends EventEmitter {
 		if (response === 'exc') {
 			this.sendEvent('stopOnException');
 			this._isException = true;
-			let msg  = lines.length < 2 ? '' : lines[1];
-			this.printCSCSOutput('Exception thrown. ' + msg);
-
 			startVarsData = 2;
 			let nbVarsLines  = Number(lines[startVarsData]);
 			this.fillVars(lines, startVarsData, nbVarsLines);
@@ -609,9 +616,13 @@ export class CscsRuntime extends EventEmitter {
 			startStackData = startVarsData + nbVarsLines + 1;
 			this.fillStackTrace(lines, startStackData);
 
-			for (let i = 0; i < this._stackTrace.length; i ++) {
-				let entry = this._stackTrace[i];
-				this.printCSCSOutput(entry.file + ', line ' + (entry.line+1) + ':\t' + entry.name);
+			let msg  = lines.length < 2 ? '' : lines[1];
+			let headerMsg = 'Exception thrown. ' + msg + ' ';
+			if (this._stackTrace.length < 1) {
+				this.printCSCSOutput(headerMsg);
+			} else {
+				let entry = this._stackTrace[0];
+				this.printCSCSOutput(headerMsg, entry.file, entry.line);
 			}
 			return;
 		}
@@ -707,14 +718,25 @@ export class CscsRuntime extends EventEmitter {
 			this._variablesMap.set(name, value);
 		}
 	}
+	
+	public makeInvalid() {
+		this._isValid = false;
+	}
+	public isValid() : boolean {
+		return this._isValid;
+	}
 
 	disconnectFromDebugger() {
+		if (!this.isValid()) {
+			return;
+		}
 		this.printCSCSOutput('Finished debugging.');
 		this.sendToServer('bye');
 		this._connected = false;
 		this._sourceFile = '';
 		this._debugger.end();
 		this.sendEvent('end');
+		this.makeInvalid();
 		Data.getNextId();
 		CscsRuntime._instance = CscsRuntime.getInstance(true);
 	}
