@@ -158,7 +158,7 @@ export class CscsRuntime extends EventEmitter {
 		}
 
 		this.loadSource(program);
-		this._originalLine = 0;
+		this._originalLine = this.getFirstLine();
 
 		this.verifyBreakpoints(this._sourceFile);
 
@@ -714,8 +714,9 @@ export class CscsRuntime extends EventEmitter {
 			} else {
 				this._localVariables.push(item);
 			}
-			this._hoversMap.set(name, value);
-			this._variablesMap.set(name, value);
+			let lower = name.toLowerCase();
+			this._hoversMap.set(lower, value);
+			this._variablesMap.set(lower, value);
 		}
 	}
 	
@@ -760,7 +761,8 @@ export class CscsRuntime extends EventEmitter {
 	}
 
 	public getVariableValue(key : string) : string {
-		let val = this._variablesMap.get(key);
+		let lower = key.toLowerCase();
+		let val = this._variablesMap.get(lower);
 		if (val) {
 			return val;
 		}
@@ -1047,6 +1049,42 @@ export class CscsRuntime extends EventEmitter {
 			this._sourceFile =  filename;
 			this._sourceLines = readFileSync(this._sourceFile).toString().split('\n');
 		}
+	}
+
+	private getFirstLine() : number {
+		let firstLine = 0;
+		if (this._sourceLines === null || this._sourceLines.length <= 1) {
+			return 0;
+		}
+		let inComments = false;
+		for (let i = 0; i < this._sourceLines.length; i++) {
+			let line = this._sourceLines[i].trim();
+			if (line === '') {
+				continue;
+			}
+			firstLine = i;
+
+			if (inComments) {
+				let index = line.indexOf('*/');
+				if (index >= 0) {
+					if (index < line.length - 2) {
+						break;
+					}
+					inComments = false;					 
+				}
+				continue;
+			}
+
+			if (line.startsWith('/*')) {
+				inComments = true;
+				i--;
+				continue;
+			}
+			if (!line.startsWith('//')) {
+				break;
+			}
+		}
+		return firstLine;
 	}
 
 	private runOnce(stepEvent?: string) {

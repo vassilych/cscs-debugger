@@ -1,9 +1,22 @@
+weatherURL = "https://api.openweathermap.org/data/2.5/weather?zip=98052,us&units=imperial&APPID=8b66ab2055b5ec0a187cda308568dfaa";
+jsonFromText = "";
+x=lala;
+function OnSuccess(object, errorCode, text) {
+  print( "Success " + errorCode );
+  jsonFromText = GetVariableFromJSON( text ); 
+}
+
+function OnFailure( object, errorCode ) {
+  print( "Failure " + errorCode );
+}
+HTTPCall( "GET", weatherURL, "", "", "OnSuccess", "OnFailure" );
+
 a=1;
 //b=2;
 c=3;
 //d=4;
 e=5;
-
+/*
 function FunctionNameInsideDoesNotExist() {
  FunctionDoesNotExist();
 }
@@ -107,7 +120,7 @@ function TakeScreenshotsOfAllSpotlights()
          v = viewpoints.Get( viewpointCounter );
          viewpoints.Goto( viewpointCounter );
          app.WaitForFrame();
-         sName = 'myDir + "" + spotlightCounter + "_" + sceneCounter + "_" + viewpointCounter + "_" + v.Name + ".png");
+         sName = myDir + "" + spotlightCounter + "_" + sceneCounter + "_" + viewpointCounter + "_" + v.Name + ".png");
          ui.TakeScreenshot( myDir + "" + spotlightCounter + "_" + sceneCounter + "_" + viewpointCounter + "_" + v.name + ".png");
        }
      }
@@ -117,3 +130,4 @@ for( viewpointCounter=0; viewpointCounter<viewpoints.Count(); viewpointCounte
  {
   {}
 }
+*/
