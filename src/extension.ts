@@ -68,7 +68,11 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			outputChannel.append('REPL> ');
+			let fromWebview = cscsRuntime.lastReplSource() === '' && MainPanel.currentPanel;
+
+			if (!fromWebview) {
+				outputChannel.append('REPL> ');
+			}
 			let lines = data.split('\\n');
 			if (lines.length === 1) {
 				lines = data.split('\n');
@@ -82,9 +86,10 @@ export function activate(context: vscode.ExtensionContext) {
 				if (line === "" && i === lines.length - 1) {
 					break;
 				}
-				outputChannel.appendLine(line);
-				if (MainPanel.currentPanel) {
+				if (fromWebview && MainPanel.currentPanel) {
 					MainPanel.currentPanel.sendReplResponse(line);
+				} else {
+					outputChannel.appendLine(line);
 				}
 	
 				counter++;
@@ -95,12 +100,13 @@ export function activate(context: vscode.ExtensionContext) {
 					//respHistory.push(line);
 				}
 			}
+			if (fromWebview) {
+				return;
+			}
 			if (counter === 0) {
 				outputChannel.appendLine("");
 			}
-			if (MainPanel.currentPanel === null || MainPanel.currentPanel === undefined) {
-				outputChannel.show(true);
-			}
+			outputChannel.show(true);
 		});
 	};
 

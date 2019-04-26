@@ -6,7 +6,6 @@
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { ContinuedEvent } from 'vscode-debugadapter';
 
 //import { CscsDebugSession } from './cscsDebug';
 //import * as vscode from 'vscode';
@@ -86,6 +85,8 @@ export class CscsRuntime extends EventEmitter {
 	private _dataTotal    = 0;
 	private _dataReceived = 0;
 	private _dataBytes    : Buffer;
+
+	private _lastReplSource = '';
 
 	private _queuedCommands = new Array<string>();
 
@@ -371,6 +372,7 @@ export class CscsRuntime extends EventEmitter {
 
 	public sendRepl(repl: string, filename = '') : Array<string>
 	{
+		this._lastReplSource = filename;
 		let result = this.splitREPL(repl);
 		let cmd = result[0];
 		let commands =result[1];
@@ -386,6 +388,10 @@ export class CscsRuntime extends EventEmitter {
 		return commands;
 	}
 
+	public lastReplSource() : string {
+		return this._lastReplSource;
+	}
+	
 	public connectToDebugger() : void {
 		if (this._connected) {
 			return;
